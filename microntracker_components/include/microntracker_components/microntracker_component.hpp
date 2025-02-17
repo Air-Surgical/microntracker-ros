@@ -4,6 +4,7 @@
 #define MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 
 #include <string>
+#include <optional>
 
 #include "microntracker_components/visibility_control.h"
 #include "microntracker/MTC.h"
@@ -32,7 +33,7 @@ private:
   mtHandle IdentifyingCamera;
 };
 
-int getMTHome(std::string & sMTHome);
+std::optional<std::string> getMTHome();
 
 }  // namespace microntracker_components
 

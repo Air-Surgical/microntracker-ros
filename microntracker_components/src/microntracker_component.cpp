@@ -8,6 +8,7 @@
 #include <utility>
 #include <filesystem>
 #include <string>
+#include <optional>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -32,18 +33,16 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
 
   // Initialize MTC library and connect to cameras
-  std::string calibrationDir;
-  std::string markerDir;
-
-  if (getMTHome(calibrationDir) < 0) {
+  std::optional<std::string> calibrationDir = getMTHome();
+  if (!calibrationDir) {
     RCLCPP_ERROR(this->get_logger(), "MTHome environment variable not set");
     return;
-  } else {
-    markerDir = fs::path(calibrationDir) / "Markers";
-    calibrationDir = fs::path(calibrationDir) / "CalibrationFiles";
   }
 
-  MTC(Cameras_AttachAvailableCameras(calibrationDir.c_str()));
+  std::string markerDir = fs::path(*calibrationDir) / "Markers";
+  std::string calibrationDirPath = fs::path(*calibrationDir) / "CalibrationFiles";
+
+  MTC(Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
   if (Cameras_Count() < 1) {
     RCLCPP_ERROR(this->get_logger(), "No camera found!");
     return;
@@ -126,15 +125,12 @@ void MicronTrackerDriver::process_frames()
   Xform3D_Free(PoseXf);
 }
 
-int getMTHome(std::string & sMTHome)
+std::optional<std::string> getMTHome()
 {
-  char *localNamePtr = getenv("MTHome");
-  if (localNamePtr) {
-    sMTHome = localNamePtr;
-  } else {
-    return -1;
+  if (const char * localNamePtr = getenv("MTHome")) {
+    return std::string(localNamePtr);
   }
-  return 0;
+  return std::nullopt;
 }
 
 }  // namespace microntracker_components
