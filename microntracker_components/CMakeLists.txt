@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(microntracker REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -17,6 +18,7 @@ target_include_directories(microntracker_component PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 target_compile_features(microntracker_component PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 ament_target_dependencies(microntracker_component
+  microntracker
   rclcpp
   rclcpp_components
   std_msgs

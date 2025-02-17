@@ -16,6 +16,7 @@
 #define MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 
 #include "microntracker_components/visibility_control.h"
+#include "microntracker/MTC.h"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
