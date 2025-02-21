@@ -12,10 +12,6 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
 
-# Specify the paths to the required libraries
-set(MICRONTRACKER_LIB_DIR "/opt/air_ws/install/microntracker/lib")
-link_directories(${MICRONTRACKER_LIB_DIR})
-
 add_library(microntracker_component SHARED src/microntracker_component.cpp)
 target_include_directories(microntracker_component PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -28,19 +24,7 @@ ament_target_dependencies(microntracker_component
   std_msgs
 )
 target_link_libraries(microntracker_component
-  ${MICRONTRACKER_LIB_DIR}/libCLAllSerial_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libCLProtocol_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libFirmwareUpdate_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libGCBase_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libGenApi_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libJadakApi-4.10.5.so
-  ${MICRONTRACKER_LIB_DIR}/libLog_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libMTC.so
-  ${MICRONTRACKER_LIB_DIR}/libMathParser_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libNodeMapData_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libXmlParser_gcc48_v3_2.so
-  ${MICRONTRACKER_LIB_DIR}/libZXing.a
-  ${MICRONTRACKER_LIB_DIR}/liblog4cpp_gcc48_v3_2.so
+  ${microntracker_LIBRARIES}
 )
 
 rclcpp_components_register_node(
