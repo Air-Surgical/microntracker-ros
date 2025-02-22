@@ -21,7 +21,7 @@ namespace microntracker_components
 
 // Macro to check for and report MTC usage errors.
 #define MTC(func) {int r = func; \
-  if (r != mtOK) RCLCPP_ERROR(this->get_logger(), "MTC error: %s", MTLastErrorString());}
+  if (r != mtc::mtOK) RCLCPP_ERROR(this->get_logger(), "MTC error: %s", mtc::MTLastErrorString());}
 
 MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
@@ -42,31 +42,30 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   std::string markerDir = fs::path(*calibrationDir) / "Markers";
   std::string calibrationDirPath = fs::path(*calibrationDir) / "CalibrationFiles";
 
-  MTC(Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
-  if (Cameras_Count() < 1) {
+  MTC(mtc::Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
+  if (mtc::Cameras_Count() < 1) {
     RCLCPP_ERROR(this->get_logger(), "No camera found!");
     return;
   }
 
-  MTC(Cameras_ItemGet(0, &CurrCamera));
-  MTC(Camera_SerialNumberGet(CurrCamera, &CurrCameraSerialNum));
-  RCLCPP_INFO(this->get_logger(), "Attached %d camera(s). Curr camera is %d", Cameras_Count(),
-      CurrCameraSerialNum);
+  MTC(mtc::Cameras_ItemGet(0, &CurrCamera));
+  MTC(mtc::Camera_SerialNumberGet(CurrCamera, &CurrCameraSerialNum));
+  RCLCPP_INFO(this->get_logger(), "Attached %d camera(s). Curr camera is %d", mtc::Cameras_Count(),
+              CurrCameraSerialNum);
 
-  mtStreamingModeStruct mode {
-    mtFrameType::Alternating,
-    mtDecimation::Dec41,
-    mtBitDepth::Bpp14
-  };
+  mtc::mtStreamingModeStruct mode{
+    mtc::mtFrameType::Alternating,
+    mtc::mtDecimation::Dec41,
+    mtc::mtBitDepth::Bpp14};
 
-  MTC(Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
+  MTC(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
 
   int x, y;
-  MTC(Camera_ResolutionGet(CurrCamera, &x, &y));
+  MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
   RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", x, y);
 
-  MTC(Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
-  RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", Markers_TemplatesCount());
+  MTC(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
+  RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", mtc::Markers_TemplatesCount());
 }
 
 void MicronTrackerDriver::on_timer()
@@ -86,43 +85,43 @@ void MicronTrackerDriver::on_timer()
 
 void MicronTrackerDriver::process_frames()
 {
-  mtHandle IdentifiedMarkers = Collection_New();
-  mtHandle PoseXf = Xform3D_New();
+  mtc::mtHandle IdentifiedMarkers = mtc::Collection_New();
+  mtc::mtHandle PoseXf = mtc::Xform3D_New();
 
   for (int i = 0; i < 20; i++) {
-    MTC(Cameras_GrabFrame(0));
-    MTC(Markers_ProcessFrame(0));
+    MTC(mtc::Cameras_GrabFrame(0));
+    MTC(mtc::Markers_ProcessFrame(0));
 
     if (i < 10) {continue;}
 
-    MTC(Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
+    MTC(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
     RCLCPP_INFO(this->get_logger(), "%d: identified %d marker(s)", i,
-        Collection_Count(IdentifiedMarkers));
+        mtc::Collection_Count(IdentifiedMarkers));
 
-    for (int j = 1; j <= Collection_Count(IdentifiedMarkers); j++) {
-      mtHandle Marker = Collection_Int(IdentifiedMarkers, j);
-      MTC(Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
+    for (int j = 1; j <= mtc::Collection_Count(IdentifiedMarkers); j++) {
+      mtc::mtHandle Marker = mtc::Collection_Int(IdentifiedMarkers, j);
+      MTC(mtc::Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
 
       if (IdentifyingCamera != 0) {
         char MarkerName[MT_MAX_STRING_LENGTH];
         double Position[3], Angle[3];
-        mtMeasurementHazardCode Hazard;
+        mtc::mtMeasurementHazardCode Hazard;
 
-        MTC(Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
-        MTC(Xform3D_ShiftGet(PoseXf, Position));
-        MTC(Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
-        MTC(Xform3D_HazardCodeGet(PoseXf, &Hazard));
+        MTC(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
+        MTC(mtc::Xform3D_ShiftGet(PoseXf, Position));
+        MTC(mtc::Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
+        MTC(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
         RCLCPP_INFO(this->get_logger(),
             ">> %s at (%0.2f, %0.2f, %0.2f), rotation (degs): (%0.1f, %0.1f, %0.1f) %s",
                     MarkerName, Position[0], Position[1], Position[2], Angle[0], Angle[1], Angle[2],
-            MTHazardCodeString(Hazard));
+            mtc::MTHazardCodeString(Hazard));
       }
     }
   }
 
-  Collection_Free(IdentifiedMarkers);
-  Xform3D_Free(PoseXf);
+  mtc::Collection_Free(IdentifiedMarkers);
+  mtc::Xform3D_Free(PoseXf);
 }
 
 std::optional<std::string> getMTHome()

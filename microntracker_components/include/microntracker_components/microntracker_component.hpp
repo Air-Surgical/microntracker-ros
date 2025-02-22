@@ -6,8 +6,8 @@
 #include <string>
 #include <optional>
 
+#include "microntracker_components/mtc_wrapper.hpp"
 #include "microntracker_components/visibility_control.h"
-#include "microntracker/MTC.h"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -28,9 +28,9 @@ private:
   size_t count_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
-  mtHandle CurrCamera;
+  mtc::mtHandle CurrCamera;
   int CurrCameraSerialNum;
-  mtHandle IdentifyingCamera;
+  mtc::mtHandle IdentifyingCamera;
 };
 
 std::optional<std::string> getMTHome();
