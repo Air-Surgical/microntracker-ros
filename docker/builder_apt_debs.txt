@@ -1,0 +1,17 @@
+################################################################################
+# MARK: builder - system packages for build-time 
+################################################################################
+
+# ROS packages
+
+# Build tools
+build-essential
+ccache
+distcc
+gh
+git
+git-lfs
+lld
+
+# System utils
+unzip
