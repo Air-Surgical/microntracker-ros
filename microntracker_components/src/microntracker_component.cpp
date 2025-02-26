@@ -105,12 +105,12 @@ void MicronTrackerDriver::process_frames()
     if (IdentifyingCamera != 0) {
       char MarkerName[MT_MAX_STRING_LENGTH];
       double Position[3], Angle[3];
-      mtc::mtMeasurementHazardCode Hazard;
+      // mtc::mtMeasurementHazardCode Hazard;
 
       MTC(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
       MTC(mtc::Xform3D_ShiftGet(PoseXf, Position));
       MTC(mtc::Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
-      MTC(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
+      // MTC(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
       visualization_msgs::msg::Marker marker;
       marker.header.frame_id = "camera";
