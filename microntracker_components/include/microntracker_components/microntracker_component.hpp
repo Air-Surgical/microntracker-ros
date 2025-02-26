@@ -9,7 +9,7 @@
 #include "microntracker_components/mtc_wrapper.hpp"
 #include "microntracker_components/visibility_control.h"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace microntracker_components
 {
@@ -26,11 +26,12 @@ protected:
 
 private:
   size_t count_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   mtc::mtHandle CurrCamera;
   int CurrCameraSerialNum;
   mtc::mtHandle IdentifyingCamera;
+  bool IsBackGroundProcessingEnabled;
 };
 
 std::optional<std::string> getMTHome();

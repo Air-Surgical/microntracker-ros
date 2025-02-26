@@ -11,6 +11,7 @@ find_package(microntracker REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 add_library(microntracker_component SHARED src/microntracker_component.cpp)
 target_include_directories(microntracker_component PUBLIC
@@ -22,6 +23,7 @@ ament_target_dependencies(microntracker_component
   rclcpp
   rclcpp_components
   std_msgs
+  visualization_msgs
 )
 target_link_libraries(microntracker_component
   ${microntracker_LIBRARIES}
