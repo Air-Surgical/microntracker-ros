@@ -55,7 +55,7 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   mtc::mtStreamingModeStruct mode{
     mtc::mtFrameType::Alternating,
     mtc::mtDecimation::Dec41,
-    mtc::mtBitDepth::Bpp14};
+    mtc::mtBitDepth::Bpp12};
 
   MTC(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
 
