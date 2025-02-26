@@ -17,7 +17,7 @@ cat << 'EOF' > ~/.mtrrc
 . /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
 
 # Set ENABLE_RGL based on NVIDIA environment variables
-# Some hybrid graphic laptops require the following settings to offload graphics rendering task to NVIDIA and load the GLX library 
+# Some hybrid graphic laptops require the following settings to offload graphics rendering task to NVIDIA and load the GLX library
 if [ -n "$NVIDIA_VISIBLE_DEVICES" ] && [ -n "$(echo $NVIDIA_DRIVER_CAPABILITIES | grep -e graphics -e all )" ]; then
     export __NV_PRIME_RENDER_OFFLOAD=1
     export __GLX_VENDOR_LIBRARY_NAME=nvidia

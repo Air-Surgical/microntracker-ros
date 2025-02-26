@@ -147,7 +147,7 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
     < /tmp/exec_debs.txt xargs apt-get install -y --no-install-recommends
 
 ################################################################################
-# MARK: tester - setup test dependencies for validation 
+# MARK: tester - setup test dependencies for validation
 ################################################################################
 FROM runner AS tester
 
@@ -198,7 +198,7 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
   cut -d# -f1 < /tmp/builder_apt_debs.txt | envsubst \
     | xargs apt-get install -y --no-install-recommends
 
-# Symlink for docker outside of docker 
+# Symlink for docker outside of docker
 RUN ln -s /var/run/docker-host.sock /var/run/docker.sock
 
 # install awscli
@@ -339,7 +339,7 @@ FROM $EXPORT_FROM_STAGE AS exporter
 COPY --link --from=dancer /dancer/$OVERLAY_WS $OVERLAY_WS
 
 ################################################################################
-# MARK: shipper - setup production images using shared instructions 
+# MARK: shipper - setup production images using shared instructions
 ################################################################################
 FROM $SHIP_FROM_STAGE AS shipper
 

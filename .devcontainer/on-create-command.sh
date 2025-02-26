@@ -30,7 +30,7 @@ source /opt/ros/$ROS_DISTRO/setup.bash\
 find .git/modules -type d -path '*/hooks' \
     -exec sh -c 'rm -rf "$1" || true && ln -sf ../../hooks "$1"' _ {} \;
 
-# NOTE: This is slow if not using a mounted volumes, 
+# NOTE: This is slow if not using a mounted volumes,
 # i.e. using workspace from the docker image directly,
 # presumably due to docker overlayfs driver overhead.
 # If needing to use workspace pre-baked into base image,

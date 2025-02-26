@@ -20,7 +20,7 @@ First, ensure your using a recent enough version of Docker Engine that supports 
   - https://get.docker.com - simple universal install script
   - [Linux post-installation](https://docs.docker.com/engine/install/linux-postinstall/) - manage Docker as a non-root user
 - [Git LFS](https://git-lfs.github.com/) - for managing large assets
-  - Use for version controlling media such as figures 
+  - Use for version controlling media such as figures
   - Necessary for cloning example simulation files
 - [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit) - optional for enabling Hardware Acceleration
   - [Installing the Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) - only necessary host running Docker Engine
