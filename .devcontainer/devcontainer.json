@@ -15,7 +15,7 @@
         // # MARK: Device args - for peripherals and host passthrough
         // ################################################################################
         "--privileged", // device access to host peripherals, e.g. USB
-        // "--volume=/dev/bus/usb:/dev/bus/usb", // explicitly bind mount USB bus interface
+        "--volume=/dev/bus/usb:/dev/bus/usb", // explicitly bind mount USB bus interface
         // "--device-cgroup-rule", "c 123:* rmw", // read, mknod, and write permissions for example cameras
         // ################################################################################
         // # MARK: Graphic args - for hardware acceleration displays
