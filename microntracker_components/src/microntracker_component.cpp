@@ -29,7 +29,7 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
 
   // Use a timer to schedule periodic message publishing.
-  timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
+  // timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
 
   // Initialize MTC library and connect to cameras
   std::optional<std::string> calibrationDir = getMTHome();
@@ -72,6 +72,11 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
   MTC(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
   RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", mtc::Markers_TemplatesCount());
+
+  // while node is running, process frames
+  while (rclcpp::ok()) {
+    process_frames();
+  }
 }
 
 void MicronTrackerDriver::on_timer()
