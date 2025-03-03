@@ -29,9 +29,9 @@ private:
   bool IsBackGroundProcessingEnabled;
   int CurrCameraSerialNum;
   mtc::mtHandle CurrCamera;
-  mtc::mtHandle IdentifiedMarkers = mtc::Collection_New();
+  mtc::mtHandle IdentifiedMarkers;
   mtc::mtHandle IdentifyingCamera;
-  mtc::mtHandle PoseXf = mtc::Xform3D_New();
+  mtc::mtHandle PoseXf;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   size_t count_;
