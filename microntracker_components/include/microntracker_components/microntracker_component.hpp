@@ -26,15 +26,15 @@ protected:
   void process_frames();
 
 private:
-  size_t count_;
+  bool IsBackGroundProcessingEnabled;
+  int CurrCameraSerialNum;
+  mtc::mtHandle CurrCamera;
+  mtc::mtHandle IdentifiedMarkers = mtc::Collection_New();
+  mtc::mtHandle IdentifyingCamera;
+  mtc::mtHandle PoseXf = mtc::Xform3D_New();
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
-  mtc::mtHandle CurrCamera;
-  int CurrCameraSerialNum;
-  mtc::mtHandle IdentifyingCamera;
-  bool IsBackGroundProcessingEnabled;
-  mtc::mtHandle IdentifiedMarkers = mtc::Collection_New();
-  mtc::mtHandle PoseXf = mtc::Xform3D_New();
+  size_t count_;
 };
 
 std::optional<std::string> getMTHome();
