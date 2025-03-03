@@ -22,6 +22,7 @@ public:
   ~MicronTrackerDriver();
 
 protected:
+  void init_mtc();
   void on_timer();
   void process_frames();
 

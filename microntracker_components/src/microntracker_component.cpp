@@ -32,6 +32,24 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   // timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
 
   // Initialize MTC library and connect to cameras
+  init_mtc();
+
+  // while node is running, process frames
+  while (rclcpp::ok()) {
+    process_frames();
+  }
+}
+
+MicronTrackerDriver::~MicronTrackerDriver()
+{
+  mtc::Collection_Free(IdentifiedMarkers);
+  mtc::Xform3D_Free(PoseXf);
+  mtc::Cameras_Detach();
+}
+
+void MicronTrackerDriver::init_mtc()
+{
+  // Initialize MTC library and connect to cameras
   std::optional<std::string> calibrationDir = getMTHome();
   if (!calibrationDir) {
     RCLCPP_ERROR(this->get_logger(), "MTHome environment variable not set");
@@ -75,18 +93,6 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
   IdentifiedMarkers = mtc::Collection_New();
   PoseXf = mtc::Xform3D_New();
-
-  // while node is running, process frames
-  while (rclcpp::ok()) {
-    process_frames();
-  }
-}
-
-MicronTrackerDriver::~MicronTrackerDriver()
-{
-  mtc::Collection_Free(IdentifiedMarkers);
-  mtc::Xform3D_Free(PoseXf);
-  mtc::Cameras_Detach();
 }
 
 void MicronTrackerDriver::on_timer()
