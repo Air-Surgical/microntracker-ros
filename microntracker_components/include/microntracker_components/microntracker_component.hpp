@@ -19,6 +19,7 @@ class MicronTrackerDriver : public rclcpp::Node
 public:
   MICRONTRACKER_COMPONENTS_PUBLIC
   explicit MicronTrackerDriver(const rclcpp::NodeOptions & options);
+  ~MicronTrackerDriver();
 
 protected:
   void on_timer();
@@ -32,6 +33,8 @@ private:
   int CurrCameraSerialNum;
   mtc::mtHandle IdentifyingCamera;
   bool IsBackGroundProcessingEnabled;
+  mtc::mtHandle IdentifiedMarkers = mtc::Collection_New();
+  mtc::mtHandle PoseXf = mtc::Xform3D_New();
 };
 
 std::optional<std::string> getMTHome();

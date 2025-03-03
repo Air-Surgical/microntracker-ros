@@ -73,10 +73,19 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   MTC(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
   RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", mtc::Markers_TemplatesCount());
 
+  IdentifiedMarkers = mtc::Collection_New();
+  PoseXf = mtc::Xform3D_New();
+
   // while node is running, process frames
   while (rclcpp::ok()) {
     process_frames();
   }
+}
+
+MicronTrackerDriver::~MicronTrackerDriver()
+{
+  mtc::Collection_Free(IdentifiedMarkers);
+  mtc::Xform3D_Free(PoseXf);
 }
 
 void MicronTrackerDriver::on_timer()
@@ -87,9 +96,6 @@ void MicronTrackerDriver::on_timer()
 
 void MicronTrackerDriver::process_frames()
 {
-  mtc::mtHandle IdentifiedMarkers = mtc::Collection_New();
-  mtc::mtHandle PoseXf = mtc::Xform3D_New();
-
   auto msg = std::make_unique<visualization_msgs::msg::MarkerArray>();
 
   if (IsBackGroundProcessingEnabled) {
@@ -143,9 +149,6 @@ void MicronTrackerDriver::process_frames()
   // Put the message into a queue to be processed by the middleware.
   // This call is non-blocking.
   pub_->publish(std::move(msg));
-
-  mtc::Collection_Free(IdentifiedMarkers);
-  mtc::Xform3D_Free(PoseXf);
 }
 
 std::optional<std::string> getMTHome()
