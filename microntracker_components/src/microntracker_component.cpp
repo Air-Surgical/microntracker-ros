@@ -86,6 +86,7 @@ MicronTrackerDriver::~MicronTrackerDriver()
 {
   mtc::Collection_Free(IdentifiedMarkers);
   mtc::Xform3D_Free(PoseXf);
+  mtc::Cameras_Detach();
 }
 
 void MicronTrackerDriver::on_timer()
