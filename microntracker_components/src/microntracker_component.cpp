@@ -42,10 +42,10 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
 MicronTrackerDriver::~MicronTrackerDriver()
 {
-  mtc::Collection_Free(IdentifiedMarkers);
-  mtc::Xform3D_Free(PoseXf);
   mtc::Cameras_Detach();
   mtc::Camera_Free(CurrCamera);
+  mtc::Collection_Free(IdentifiedMarkers);
+  mtc::Xform3D_Free(PoseXf);
 }
 
 void MicronTrackerDriver::init_mtc()
