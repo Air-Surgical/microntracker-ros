@@ -25,7 +25,6 @@ namespace microntracker_components
 MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
-  // Create a publisher of "std_mgs/String" messages on the "chatter" topic.
   pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
 
   // Use a timer to schedule periodic message publishing.
