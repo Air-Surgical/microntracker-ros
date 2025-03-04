@@ -132,6 +132,7 @@ void MicronTrackerDriver::process_frames()
       // MTC(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
       visualization_msgs::msg::Marker marker;
+      marker.type = visualization_msgs::msg::Marker::CUBE;
       marker.id = j;
       marker.header.frame_id = "camera";
       marker.header.stamp = now();
