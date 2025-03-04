@@ -34,7 +34,13 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   init_mtc();
 
   // while node is running, process frames
+  bool ready;
   while (rclcpp::ok()) {
+    mtc::Markers_IsBackgroundFrameProcessedGet(&ready);
+    // Sleep for 1ms if not ready
+    // if (!ready) {
+    std::this_thread::sleep_for(10ms);
+    // }
     process_frames();
   }
 }
