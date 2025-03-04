@@ -135,9 +135,9 @@ void MicronTrackerDriver::process_frames()
       marker.header.frame_id = "camera";
       marker.header.stamp = now();
       marker.text = MarkerName;
-      marker.pose.position.x = Position[0];
-      marker.pose.position.y = Position[1];
-      marker.pose.position.z = Position[2];
+      marker.pose.position.x = Position[0] / 1000;
+      marker.pose.position.y = Position[1] / 1000;
+      marker.pose.position.z = Position[2] / 1000;
       marker.pose.orientation.x = Angle[0];
       marker.pose.orientation.y = Angle[1];
       marker.pose.orientation.z = Angle[2];
