@@ -120,7 +120,7 @@ void MicronTrackerDriver::process_frames()
 
   MTC(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
-  RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 100, "identified %d marker(s)",
+  RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 1000, "identified %d marker(s)",
                        mtc::Collection_Count(IdentifiedMarkers));
 
   for (int j = 1; j <= mtc::Collection_Count(IdentifiedMarkers); j++) {
