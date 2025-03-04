@@ -144,9 +144,9 @@ void MicronTrackerDriver::process_frames()
       marker.pose.orientation.y = Angle[1];
       marker.pose.orientation.z = Angle[2];
       marker.pose.orientation.w = 1.0;
-      marker.scale.x = 0.1;
-      marker.scale.y = 0.1;
-      marker.scale.z = 0.1;
+      marker.scale.x = 0.05;
+      marker.scale.y = 0.05;
+      marker.scale.z = 0.05;
       marker.color.r = 1.0;
       marker.color.g = 0.0;
       marker.color.b = 0.0;
