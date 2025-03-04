@@ -151,7 +151,6 @@ void MicronTrackerDriver::process_frames()
       marker.color.a = 1.0;
       msg->markers.push_back(marker);
     }
-    mtc::Marker_Free(Marker);
   }
 
   // Put the message into a queue to be processed by the middleware.
