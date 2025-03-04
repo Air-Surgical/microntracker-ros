@@ -25,7 +25,9 @@ namespace microntracker_components
 MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
-  pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
+  marker_array_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
+  left_image_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
+  right_image_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
 
   // Use a timer to schedule periodic message publishing.
   // timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
@@ -77,7 +79,7 @@ void MicronTrackerDriver::init_mtc()
               CurrCameraSerialNum);
 
   mtc::mtStreamingModeStruct mode{
-    mtc::mtFrameType::ROIs,
+    mtc::mtFrameType::Alternating,
     mtc::mtDecimation::Dec41,
     mtc::mtBitDepth::Bpp12};
 
@@ -117,6 +119,41 @@ void MicronTrackerDriver::process_frames()
     MTC(mtc::Cameras_GrabFrame(0));
     MTC(mtc::Markers_ProcessFrame(0));
   }
+
+  int x, y;
+  MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
+  x /= 4;
+  y /= 4;
+  int QuarterSizeImageBufferSize = (x * y) * 3;
+
+  std::vector<unsigned char> leftImageBuffer(QuarterSizeImageBufferSize);
+  std::vector<unsigned char> rightImageBuffer(QuarterSizeImageBufferSize);
+  mtc::Camera_24BitQuarterSizeImagesGet(CurrCamera, leftImageBuffer.data(),
+      rightImageBuffer.data());
+
+  // Publish left image
+  auto left_image_msg = std::make_unique<sensor_msgs::msg::Image>();
+  left_image_msg->header.frame_id = "camera";
+  left_image_msg->header.stamp = now();
+  left_image_msg->height = y;
+  left_image_msg->width = x;
+  left_image_msg->encoding = "rgb8";
+  left_image_msg->is_bigendian = false;
+  left_image_msg->step = 3 * x;
+  left_image_msg->data = std::move(leftImageBuffer);
+  left_image_pub_->publish(std::move(left_image_msg));
+
+  // Publish right image
+  auto right_image_msg = std::make_unique<sensor_msgs::msg::Image>();
+  right_image_msg->header.frame_id = "camera";
+  right_image_msg->header.stamp = now();
+  right_image_msg->height = y;
+  right_image_msg->width = x;
+  right_image_msg->encoding = "rgb8";
+  right_image_msg->is_bigendian = false;
+  right_image_msg->step = 3 * x;
+  right_image_msg->data = std::move(rightImageBuffer);
+  right_image_pub_->publish(std::move(right_image_msg));
 
   MTC(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
@@ -163,7 +200,7 @@ void MicronTrackerDriver::process_frames()
 
   // Put the message into a queue to be processed by the middleware.
   // This call is non-blocking.
-  pub_->publish(std::move(msg));
+  marker_array_pub_->publish(std::move(msg));
 }
 
 std::optional<std::string> getMTHome()

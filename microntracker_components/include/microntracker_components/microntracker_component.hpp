@@ -10,6 +10,7 @@
 #include "microntracker_components/visibility_control.h"
 #include "rclcpp/rclcpp.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
 namespace microntracker_components
 {
@@ -33,7 +34,9 @@ private:
   mtc::mtHandle IdentifiedMarkers;
   mtc::mtHandle IdentifyingCamera;
   mtc::mtHandle PoseXf;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_image_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_image_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   size_t count_;
 };

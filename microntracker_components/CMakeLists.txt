@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(microntracker REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
@@ -22,6 +23,7 @@ ament_target_dependencies(microntracker_component
   microntracker
   rclcpp
   rclcpp_components
+  sensor_msgs
   std_msgs
   visualization_msgs
 )
