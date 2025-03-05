@@ -41,7 +41,7 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
     mtc::Markers_IsBackgroundFrameProcessedGet(&ready);
     // Sleep for 1ms if not ready
     // if (!ready) {
-    std::this_thread::sleep_for(10ms);
+    // std::this_thread::sleep_for(10ms);
     // }
     process_frames();
   }
@@ -120,6 +120,17 @@ void MicronTrackerDriver::process_frames()
     MTC(mtc::Markers_ProcessFrame(0));
   }
 
+  double frame_secs;
+  mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs);
+  auto frame_stamp = [frame_secs]() {
+      auto sec =
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::duration<double>(frame_secs));
+      auto nsec =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(
+        frame_secs - sec.count()));
+      return rclcpp::Time(sec.count(), nsec.count());
+    }();
+
   int x, y;
   MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
   x /= 4;
@@ -134,7 +145,7 @@ void MicronTrackerDriver::process_frames()
   // Publish left image
   auto left_image_msg = std::make_unique<sensor_msgs::msg::Image>();
   left_image_msg->header.frame_id = "camera";
-  left_image_msg->header.stamp = now();
+  left_image_msg->header.stamp = frame_stamp;
   left_image_msg->height = y;
   left_image_msg->width = x;
   left_image_msg->encoding = "rgb8";
@@ -146,7 +157,7 @@ void MicronTrackerDriver::process_frames()
   // Publish right image
   auto right_image_msg = std::make_unique<sensor_msgs::msg::Image>();
   right_image_msg->header.frame_id = "camera";
-  right_image_msg->header.stamp = now();
+  right_image_msg->header.stamp = frame_stamp;
   right_image_msg->height = y;
   right_image_msg->width = x;
   right_image_msg->encoding = "rgb8";
@@ -178,7 +189,7 @@ void MicronTrackerDriver::process_frames()
       marker.type = visualization_msgs::msg::Marker::CUBE;
       marker.id = j;
       marker.header.frame_id = "camera";
-      marker.header.stamp = now();
+      marker.header.stamp = frame_stamp;
       marker.text = MarkerName;
       marker.pose.position.x = Position[0] / 1000;
       marker.pose.position.y = Position[1] / 1000;
