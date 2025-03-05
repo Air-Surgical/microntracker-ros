@@ -1,7 +1,0 @@
-{
-    "names": {
-        "example": {
-            "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
-        }
-    }
-}
