@@ -1,3 +1,6 @@
+[submodule "colcon-mixin-repository"]
+	path = docker/.colcon/mixin/default
+	url = git@github.com:colcon/colcon-mixin-repository.git
 [submodule "microntracker"]
 	path = microntracker
 	url = git@github.com:Air-Surgical/microntracker.git
