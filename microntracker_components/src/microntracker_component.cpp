@@ -90,7 +90,7 @@ void MicronTrackerDriver::init_mtc()
   RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", x, y);
 
 
-  IsBackGroundProcessingEnabled = true;
+  IsBackGroundProcessingEnabled = false;
   if (IsBackGroundProcessingEnabled) {
     MTC(mtc::Markers_BackGroundProcessSet(true));
     RCLCPP_INFO(this->get_logger(), "Background processing enabled");
