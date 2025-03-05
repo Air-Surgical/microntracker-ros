@@ -1,17 +1,101 @@
-# Dev Containers Basics
+# Dev Container
 
-For info on using devcontainers with ROS, check the Nav2 docs here:
+## Quick Start
 
-- https://navigation.ros.org/development_guides/devcontainer_docs/index.html
+To get started, follow the instructions below.
 
+### Prerequisites
 
-For more on the devcontainer specification, check the official docs here:
+First, ensure your using a recent enough version of Docker Engine that supports [BuildKit](https://docs.docker.com/build/buildkit/). If you plan on running robot simulations locally, Hardware Acceleration for sensor raytracing and 3D rendering is also recommended. While other compatible devcontainer tools may be used, Visual Studio Code is recommended for simplicity.
 
-- https://containers.dev/
-- https://containers.dev/implementors/json_reference/#lifecycle-scripts
+#### System Software
+- [Docker Engine](https://docs.docker.com/engine/install/)
+  - https://get.docker.com - simple universal install script
+  - [Linux post-installation](https://docs.docker.com/engine/install/linux-postinstall/) - manage Docker as a non-root user
+- [Git LFS](https://git-lfs.github.com/) - for managing large assets
+  - Use for version controlling media such as figures
+  - Necessary for cloning example simulation files
+- [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit) - optional for enabling Hardware Acceleration
+  - [Installing the Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) - only necessary host running Docker Engine
 
-## Lifecycle Scripts
+#### Development Tools
+- [Visual Studio Code](https://code.visualstudio.com/) - alternative to Dev Containers CLI
+  - [Remote Development](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack) - via SSH, Tunnels, Containers, WSL
+    - [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) - specific to just Containers
+  - [Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker) - for introspecting Docker daemon
+  - [Using SSH keys](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials#_using-ssh-keys) - sharing Git credentials with container
+- [Dev Container CLI](https://github.com/devcontainers/cli) - alternative to VSCode
+  - [Installation via NPM](https://github.com/devcontainers/cli?tab=readme-ov-file#npm-install) - for custom install setup
+  - [Installation via VSCode](https://code.visualstudio.com/docs/devcontainers/devcontainer-cli) - for simple install setup
+    - Note: CLI installed via VSCode is warped but bugged, install via NPM is recommended for now
+    - https://github.com/devcontainers/cli/issues/799
 
-When first opening this superproject from a devcontainer, the `initializeCommand`, defined in the devcontainer config file `.devcontainer/devcontainer.json`, is invoked to build the base image `mtc:devcontainer` for launching the docker container. Specifically, this initiation step uses `docker buildx` to bake the desired target defined in the docker bake file in the root of the superproject. By default, the target for development is used, but can be modified to point to any target defined in the bake file.
+### Cloning, Building and Running
 
-Once the base image is built, the devcontainer tooling will extend the base image further with any additional features or extensions defined in the devcontainer config file, as well as launch the container using the runtime settings defined in the same config. Once the container is up, several more commands are used to initialize the shell environment, arrange filesystem permissions for the designated user `ubuntu`, and finally kick off the compilation of the colcon overlay workspace.
+Next, recursively clone this repository and included submodules, bake default image tags using buildx, and then simply run containers using the build docker image.
+
+```shell
+# Clone the repository and submodules
+git clone --recurse-submodules -j8 \
+  git@github.com:Air-Surgical/microntracker-ros.git
+
+# Change into the repository directory
+cd microntracker-ros
+
+# Bake the builder image tag as a test
+docker buildx bake builder
+
+# Run container from image as a test
+docker run -it --rm mtc:builder bash
+```
+
+### Launching Development Containers
+
+Finally, use the CLI to bring up and exec into the Dev Container:
+
+```shell
+# To bring up a dev container
+devcontainer up --workspace-folder .
+# Or to bring up without using previous dev container
+devcontainer up --workspace-folder . --remove-existing-container
+# Or to bring up without using previous build cache
+devcontainer up --workspace-folder . --remove-existing-container --build-no-cache
+# To exec into existing dev container
+devcontainer exec --workspace-folder . bash
+```
+
+Alternatively, open VSCode and use the Remote Containers extension:
+
+```shell
+code .
+# Press Ctrl+Shift+P to open the Command Palette
+#  Type and select `Dev Containers: Reopen in Container`
+# Or to bring up without using previous dev container
+#  Type `Dev Containers: Rebuild and Reopen in Container`
+# Or to bring up without using previous build cache
+#  Type `Dev Containers: Rebuild Without Cache and Reopen in Container`
+```
+
+Note: using Dev Containers from a remote host is also possible:
+
+-  [Open a folder on a remote SSH host in a container](https://code.visualstudio.com/docs/devcontainers/containers#_open-a-folder-on-a-remote-ssh-host-in-a-container)
+-  [Open a folder on a remote Tunnel host in a container](https://code.visualstudio.com/docs/devcontainers/containers#_open-a-folder-on-a-remote-tunnel-host-in-a-container)
+
+### Further Reading and Concepts
+
+Afterwards, you may want to further familiarize yourself more with the following topics:
+
+- Git Submodules
+  - https://git-scm.com/book/en/Git-Tools-Submodules
+  - https://git-scm.com/docs/git-submodule
+- Docker
+  - Multi-stage
+    - https://docs.docker.com/build/building/multi-stage/
+  - BuildKit
+    - https://docs.docker.com/build/buildkit/
+  - Bake
+    - https://docs.docker.com/build/bake/
+- Development Containers
+  - https://navigation.ros.org/development_guides/devcontainer_docs/index.html
+  - https://containers.dev/
+  - https://code.visualstudio.com/docs/devcontainers/containers
