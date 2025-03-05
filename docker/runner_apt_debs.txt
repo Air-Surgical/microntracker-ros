@@ -1,0 +1,29 @@
+################################################################################
+# MARK: runner - system packages for run-time
+################################################################################
+
+# ROS packages
+ros-${ROS_DISTRO}-ros2cli-common-extensions
+
+# Profiling tools
+btop
+htop
+iftop
+lsof
+ncdu
+nethogs
+usbtop
+
+# Shell utils
+bash-completion
+byobu
+fish
+tmux
+
+# System utils
+rsync
+
+# Text editors
+micro
+nano
+neovim
