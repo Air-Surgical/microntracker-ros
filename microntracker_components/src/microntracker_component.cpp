@@ -76,6 +76,11 @@ void MicronTrackerDriver::init_mtc()
 
   MTC(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
 
+  auto t0 = now();
+  mtc::ResetMTTime();
+  auto t1 = now();
+  mt_epoch = t0 + (t1 - t0) * 0.5;
+
   int x, y;
   MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
   RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", x, y);
@@ -107,13 +112,9 @@ void MicronTrackerDriver::process_frames()
 
   double frame_secs;
   mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs);
-  auto frame_stamp = [frame_secs]() {
-      auto sec =
-        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::duration<double>(frame_secs));
-      auto nsec =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(
-        frame_secs - sec.count()));
-      return rclcpp::Time(sec.count(), nsec.count());
+  auto frame_stamp = [this, frame_secs]() {
+      auto duration = rclcpp::Duration::from_seconds(frame_secs);
+      return this->mt_epoch + duration;
     }();
 
   int x, y;
