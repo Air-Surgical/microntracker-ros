@@ -18,10 +18,6 @@ namespace fs = std::filesystem;
 namespace microntracker_components
 {
 
-// Macro to check for and report MTC usage errors.
-#define MTC(func) {int r = func; \
-  if (r != mtc::mtOK) RCLCPP_ERROR(this->get_logger(), "MTC error: %s", mtc::MTLastErrorString());}
-
 MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
@@ -61,14 +57,14 @@ void MicronTrackerDriver::init_mtc()
   std::string markerDir = fs::path(*calibrationDir) / "Markers";
   std::string calibrationDirPath = fs::path(*calibrationDir) / "CalibrationFiles";
 
-  MTC(mtc::Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
+  MTR(mtc::Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
   if (mtc::Cameras_Count() < 1) {
     RCLCPP_ERROR(this->get_logger(), "No camera found!");
     return;
   }
 
-  MTC(mtc::Cameras_ItemGet(0, &CurrCamera));
-  MTC(mtc::Camera_SerialNumberGet(CurrCamera, &CurrCameraSerialNum));
+  MTR(mtc::Cameras_ItemGet(0, &CurrCamera));
+  MTR(mtc::Camera_SerialNumberGet(CurrCamera, &CurrCameraSerialNum));
   RCLCPP_INFO(this->get_logger(), "Attached %d camera(s). Curr camera is %d", mtc::Cameras_Count(),
               CurrCameraSerialNum);
 
@@ -77,7 +73,7 @@ void MicronTrackerDriver::init_mtc()
     mtr::stringToDecimation(params_.mt.decimation),
     mtr::stringToBitDepth(params_.mt.bit_depth)};
 
-  MTC(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
+  MTR(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
 
   auto t0 = now();
   mtc::ResetMTTime();
@@ -85,17 +81,17 @@ void MicronTrackerDriver::init_mtc()
   mt_epoch = t0 + (t1 - t0) * 0.5;
 
   int x, y;
-  MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
   RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", x, y);
 
 
   IsBackGroundProcessingEnabled = false;
   if (IsBackGroundProcessingEnabled) {
-    MTC(mtc::Markers_BackGroundProcessSet(true));
+    MTR(mtc::Markers_BackGroundProcessSet(true));
     RCLCPP_INFO(this->get_logger(), "Background processing enabled");
   }
 
-  MTC(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
+  MTR(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
   RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", mtc::Markers_TemplatesCount());
 
   IdentifiedMarkers = mtc::Collection_New();
@@ -109,8 +105,8 @@ void MicronTrackerDriver::process_frames()
   if (IsBackGroundProcessingEnabled) {
     mtc::Markers_GetIdentifiedMarkersFromBackgroundThread(CurrCamera);
   } else {
-    MTC(mtc::Cameras_GrabFrame(0));
-    MTC(mtc::Markers_ProcessFrame(0));
+    MTR(mtc::Cameras_GrabFrame(0));
+    MTR(mtc::Markers_ProcessFrame(0));
   }
 
   double frame_secs;
@@ -121,7 +117,7 @@ void MicronTrackerDriver::process_frames()
     }();
 
   int x, y;
-  MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
   x /= 4;
   y /= 4;
   int QuarterSizeImageBufferSize = (x * y) * 3;
@@ -155,24 +151,24 @@ void MicronTrackerDriver::process_frames()
   right_image_msg->data = std::move(rightImageBuffer);
   right_image_pub_->publish(std::move(right_image_msg));
 
-  MTC(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
+  MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
   RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 1000, "identified %d marker(s)",
                        mtc::Collection_Count(IdentifiedMarkers));
 
   for (int j = 1; j <= mtc::Collection_Count(IdentifiedMarkers); j++) {
     mtc::mtHandle Marker = mtc::Collection_Int(IdentifiedMarkers, j);
-    MTC(mtc::Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
+    MTR(mtc::Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
 
     if (IdentifyingCamera != 0) {
       char MarkerName[MT_MAX_STRING_LENGTH];
       double Position[3], Angle[3];
       // mtc::mtMeasurementHazardCode Hazard;
 
-      MTC(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
-      MTC(mtc::Xform3D_ShiftGet(PoseXf, Position));
-      MTC(mtc::Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
-      // MTC(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
+      MTR(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
+      MTR(mtc::Xform3D_ShiftGet(PoseXf, Position));
+      MTR(mtc::Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
+      // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
       visualization_msgs::msg::Marker marker;
       marker.type = visualization_msgs::msg::Marker::CUBE;

@@ -13,6 +13,10 @@ namespace mtc
 
 namespace mtr
 {
+
+#define MTR(func) {int r = func; \
+  if (r != mtc::mtOK) RCLCPP_ERROR(this->get_logger(), "MTC error: %s", mtc::MTLastErrorString());}
+
 mtc::mtFrameType stringToFrameType(const std::string & frameType)
 {
   if (frameType == "None") {return mtc::mtFrameType::None;}
