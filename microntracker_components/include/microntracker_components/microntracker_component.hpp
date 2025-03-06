@@ -44,8 +44,6 @@ private:
   std::shared_ptr<ParamListener> param_listener_;
 };
 
-std::optional<std::string> getMTHome();
-
 }  // namespace microntracker_components
 
 #endif  // MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_

@@ -52,7 +52,7 @@ MicronTrackerDriver::~MicronTrackerDriver()
 void MicronTrackerDriver::init_mtc()
 {
   // Initialize MTC library and connect to cameras
-  std::optional<std::string> calibrationDir = getMTHome();
+  std::optional<std::string> calibrationDir = mtr::getMTHome();
   if (!calibrationDir) {
     RCLCPP_ERROR(this->get_logger(), "MTHome environment variable not set");
     return;
@@ -201,14 +201,6 @@ void MicronTrackerDriver::process_frames()
   // Put the message into a queue to be processed by the middleware.
   // This call is non-blocking.
   marker_array_pub_->publish(std::move(msg));
-}
-
-std::optional<std::string> getMTHome()
-{
-  if (const char * localNamePtr = getenv("MTHome")) {
-    return std::string(localNamePtr);
-  }
-  return std::nullopt;
 }
 
 }  // namespace microntracker_components

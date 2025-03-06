@@ -38,6 +38,14 @@ mtc::mtBitDepth stringToBitDepth(const std::string & bitDepth)
   if (bitDepth == "Bpp12") {return mtc::mtBitDepth::Bpp12;}
   throw std::invalid_argument("Invalid bit depth");
 }
+
+std::optional<std::string> getMTHome()
+{
+  if (const char * localNamePtr = getenv("MTHome")) {
+    return std::string(localNamePtr);
+  }
+  return std::nullopt;
+}
 }  // namespace mtr
 
 #endif  // MICRONTRACKER_COMPONENTS__MTC_WRAPPER_HPP_
