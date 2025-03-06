@@ -24,7 +24,6 @@ public:
 
 protected:
   void init_mtc();
-  void on_timer();
   void process_frames();
 
 private:
@@ -37,7 +36,6 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_image_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_image_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
   size_t count_;
 };
 

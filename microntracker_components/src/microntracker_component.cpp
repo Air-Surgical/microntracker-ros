@@ -29,20 +29,11 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   left_image_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
   right_image_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
 
-  // Use a timer to schedule periodic message publishing.
-  // timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
-
   // Initialize MTC library and connect to cameras
   init_mtc();
 
   // while node is running, process frames
-  bool ready;
   while (rclcpp::ok()) {
-    mtc::Markers_IsBackgroundFrameProcessedGet(&ready);
-    // Sleep for 1ms if not ready
-    // if (!ready) {
-    // std::this_thread::sleep_for(10ms);
-    // }
     process_frames();
   }
 }
@@ -101,12 +92,6 @@ void MicronTrackerDriver::init_mtc()
 
   IdentifiedMarkers = mtc::Collection_New();
   PoseXf = mtc::Xform3D_New();
-}
-
-void MicronTrackerDriver::on_timer()
-{
-  // Process frames and obtain measurements
-  process_frames();
 }
 
 void MicronTrackerDriver::process_frames()
