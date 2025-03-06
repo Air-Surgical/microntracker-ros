@@ -7,12 +7,18 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(generate_parameter_library REQUIRED)
 find_package(microntracker REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+
+generate_parameter_library(
+  microntracker_components_parameters
+  src/microntracker_components_parameters.yaml
+)
 
 add_library(microntracker_component SHARED src/microntracker_component.cpp)
 target_include_directories(microntracker_component PUBLIC
@@ -28,6 +34,7 @@ ament_target_dependencies(microntracker_component
   visualization_msgs
 )
 target_link_libraries(microntracker_component
+  microntracker_components_parameters
   ${microntracker_LIBRARIES}
 )
 
@@ -38,7 +45,7 @@ rclcpp_components_register_node(
 )
 
 ament_export_targets(export_microntracker_component)
-install(TARGETS microntracker_component
+install(TARGETS microntracker_component microntracker_components_parameters
         EXPORT export_microntracker_component
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib

@@ -29,6 +29,9 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   left_image_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
   right_image_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
 
+  param_listener_ = std::make_shared<ParamListener>(get_node_parameters_interface());
+  params_ = param_listener_->get_params();
+
   // Initialize MTC library and connect to cameras
   init_mtc();
 
@@ -70,9 +73,9 @@ void MicronTrackerDriver::init_mtc()
               CurrCameraSerialNum);
 
   mtc::mtStreamingModeStruct mode{
-    mtc::mtFrameType::Alternating,
-    mtc::mtDecimation::Dec41,
-    mtc::mtBitDepth::Bpp12};
+    mtr::stringToFrameType(params_.mt.frame_type),
+    mtr::stringToDecimation(params_.mt.decimation),
+    mtr::stringToBitDepth(params_.mt.bit_depth)};
 
   MTC(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
 
