@@ -162,12 +162,12 @@ void MicronTrackerDriver::process_frames()
 
     if (IdentifyingCamera != 0) {
       char MarkerName[MT_MAX_STRING_LENGTH];
-      double Position[3], Angle[3];
+      double Position[3], Quaternion[4];
       // mtc::mtMeasurementHazardCode Hazard;
 
       MTR(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
       MTR(mtc::Xform3D_ShiftGet(PoseXf, Position));
-      MTR(mtc::Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
+      MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, &Quaternion[0]));
       // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
       visualization_msgs::msg::Marker marker;
@@ -179,10 +179,10 @@ void MicronTrackerDriver::process_frames()
       marker.pose.position.x = Position[0] / 1000;
       marker.pose.position.y = Position[1] / 1000;
       marker.pose.position.z = Position[2] / 1000;
-      marker.pose.orientation.x = Angle[0];
-      marker.pose.orientation.y = Angle[1];
-      marker.pose.orientation.z = Angle[2];
-      marker.pose.orientation.w = 1.0;
+      marker.pose.orientation.x = Quaternion[0];
+      marker.pose.orientation.y = Quaternion[1];
+      marker.pose.orientation.z = Quaternion[2];
+      marker.pose.orientation.w = Quaternion[3];
       marker.scale.x = 0.05;
       marker.scale.y = 0.05;
       marker.scale.z = 0.05;
