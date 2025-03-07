@@ -1,14 +1,19 @@
 microntracker_components:
+  frame_id:
+    type: string
+    default_value: "camera"
+    description: "Sets the frame_id for the camera"
+    validation:
+      not_empty<>: []
   mt:
-    frame_type:
+    bit_depth:
       type: string
-      default_value: "Alternating"
-      description: "Sets mtFrameType for camera streaming mode"
+      default_value: "Bpp12"
+      description: "Sets mtBitDepth for camera streaming mode"
       validation:
-        one_of<>: [ [ "Alternating", "Full", "ROIs" ] ]
-          # - "Alternating" # Alternating frames of ROIs and image data are received (combined for convenience)
-          # - "Full" # Frames received at full resolution and bit-depth
-          # - "ROIs" # Only XPoint regions of interest are received
+        one_of<>: [ [ "Bpp12", "Bpp14" ] ]
+          # - "Bpp12" # 12-bit pixel depth requested
+          # - "Bpp14" # 14-bit pixel depth requested
     decimation:
       type: string
       default_value: "Dec41"
@@ -18,17 +23,12 @@ microntracker_components:
           # - "Dec11" # Images received with no decimation (1:1)
           # - "Dec21" # Images received with 2:1 decimation, i.e. every 2nd row and column is kept
           # - "Dec41" # Images received with 4:1 decimation, i.e. every 4th row and column is kept
-    bit_depth:
+    frame_type:
       type: string
-      default_value: "Bpp12"
-      description: "Sets mtBitDepth for camera streaming mode"
+      default_value: "Alternating"
+      description: "Sets mtFrameType for camera streaming mode"
       validation:
-        one_of<>: [ [ "Bpp12", "Bpp14" ] ]
-          # - "Bpp12" # 12-bit pixel depth requested
-          # - "Bpp14" # 14-bit pixel depth requested
-  frame_id:
-    type: string
-    default_value: "camera"
-    description: "Sets the frame_id for the camera"
-    validation:
-      not_empty<>: []
+        one_of<>: [ [ "Alternating", "Full", "ROIs" ] ]
+          # - "Alternating" # Alternating frames of ROIs and image data are received (combined for convenience)
+          # - "Full" # Frames received at full resolution and bit-depth
+          # - "ROIs" # Only XPoint regions of interest are received
