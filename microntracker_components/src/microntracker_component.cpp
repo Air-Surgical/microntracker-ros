@@ -109,7 +109,7 @@ void MicronTrackerDriver::process_frames()
   }
 
   double frame_secs;
-  mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs);
+  MTR(mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs));
   auto stamp = [this, frame_secs]() {
       auto duration = rclcpp::Duration::from_seconds(frame_secs);
       return this->mt_epoch + duration;
@@ -129,8 +129,8 @@ void MicronTrackerDriver::process_frames()
   std::vector<unsigned char> left_image_data(image_buffer_size);
   std::vector<unsigned char> right_image_data(image_buffer_size);
   std::string encoding = "rgb8";
-  mtc::Camera_24BitQuarterSizeImagesGet(
-    CurrCamera, left_image_data.data(), right_image_data.data());
+  MTR(mtc::Camera_24BitQuarterSizeImagesGet(
+    CurrCamera, left_image_data.data(), right_image_data.data()));
 
   auto publish_image = [&](
     const std::vector<unsigned char> & image_data,
