@@ -26,3 +26,9 @@ microntracker_components:
         one_of<>: [ [ "Bpp12", "Bpp14" ] ]
           # - "Bpp12" # 12-bit pixel depth requested
           # - "Bpp14" # 14-bit pixel depth requested
+  frame_id:
+    type: string
+    default_value: "camera"
+    description: "Sets the frame_id for the camera"
+    validation:
+      not_empty<>: []

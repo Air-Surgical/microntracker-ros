@@ -129,7 +129,7 @@ void MicronTrackerDriver::process_frames()
 
   // Publish left image
   auto left_image_msg = std::make_unique<sensor_msgs::msg::Image>();
-  left_image_msg->header.frame_id = "camera";
+  left_image_msg->header.frame_id = params_.frame_id;
   left_image_msg->header.stamp = frame_stamp;
   left_image_msg->height = y;
   left_image_msg->width = x;
@@ -141,7 +141,7 @@ void MicronTrackerDriver::process_frames()
 
   // Publish right image
   auto right_image_msg = std::make_unique<sensor_msgs::msg::Image>();
-  right_image_msg->header.frame_id = "camera";
+  right_image_msg->header.frame_id = params_.frame_id;
   right_image_msg->header.stamp = frame_stamp;
   right_image_msg->height = y;
   right_image_msg->width = x;
@@ -174,7 +174,7 @@ void MicronTrackerDriver::process_frames()
       visualization_msgs::msg::Marker marker;
       marker.type = visualization_msgs::msg::Marker::CUBE;
       marker.id = j;
-      marker.header.frame_id = "camera";
+      marker.header.frame_id = params_.frame_id;
       marker.header.stamp = frame_stamp;
       marker.text = MarkerName;
       marker.pose.position.x = position[0] / 1000;
