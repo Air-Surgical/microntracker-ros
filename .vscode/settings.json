@@ -1,7 +1,7 @@
 {
-    "C_Cpp.default.cStandard": "c11",
     "C_Cpp.default.compilerPath": "/usr/bin/g++",
     "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.cStandard": "c11",
     "C_Cpp.default.defines": [
         "ROS_FOUND"
     ],
@@ -14,6 +14,7 @@
     ],
     "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
     "C_Cpp.intelliSenseEngine": "default",
+    "cmake.configureOnOpen": false,
     "cSpell.enabled": true,
     "cSpell.language": "en",
     "cSpell.words": [
@@ -31,19 +32,6 @@
         "seccomp",
         "vitaliymaz",
         "Xform"
-    ],
-    "cmake.configureOnOpen": false,
-    "git.detectSubmodulesLimit": 50,
-    "python.analysis.extraPaths": [
-        "/opt/ros/jazzy/lib/python3.12/site-packages"
-    ],
-    "python.autoComplete.extraPaths": [
-        "/opt/ros/jazzy/lib/python3.12/site-packages"
-    ],
-    "terminal.integrated.commandsToSkipShell": [
-        "-workbench.action.terminal.findNext",
-        "-search.action.focusNextSearchResult",
-        "-workbench.action.debug.start"
     ],
     "files.associations": {
         "*.tcc": "cpp",
@@ -117,6 +105,18 @@
         "unordered_set": "cpp",
         "utility": "cpp",
         "variant": "cpp",
-        "vector": "cpp",
-    }
+        "vector": "cpp"
+    },
+    "git.detectSubmodulesLimit": 50,
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "terminal.integrated.commandsToSkipShell": [
+        "-workbench.action.terminal.findNext",
+        "-search.action.focusNextSearchResult",
+        "-workbench.action.debug.start"
+    ]
 }
