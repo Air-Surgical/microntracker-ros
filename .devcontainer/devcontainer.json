@@ -1,6 +1,6 @@
 {
     "name": "MTR",
-    // "initializeCommand": ".devcontainer/initialize-command.sh dever", // Bakes to tag mtc:devcontainer
+    "initializeCommand": ".devcontainer/initialize-command.sh dever", // Bakes to tag mtc:devcontainer
     "image": "mtc:devcontainer",
     "runArgs": [
         // ################################################################################
