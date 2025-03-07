@@ -18,10 +18,6 @@ namespace fs = std::filesystem;
 namespace microntracker_components
 {
 
-// Macro to check for and report MTC usage errors.
-#define MTC(func) {int r = func; \
-  if (r != mtc::mtOK) RCLCPP_ERROR(this->get_logger(), "MTC error: %s", mtc::MTLastErrorString());}
-
 MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
@@ -29,20 +25,14 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   left_image_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
   right_image_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
 
-  // Use a timer to schedule periodic message publishing.
-  // timer_ = create_wall_timer(1s, [this]() {return this->on_timer();});
+  param_listener_ = std::make_shared<ParamListener>(get_node_parameters_interface());
+  params_ = param_listener_->get_params();
 
   // Initialize MTC library and connect to cameras
   init_mtc();
 
   // while node is running, process frames
-  bool ready;
   while (rclcpp::ok()) {
-    mtc::Markers_IsBackgroundFrameProcessedGet(&ready);
-    // Sleep for 1ms if not ready
-    // if (!ready) {
-    std::this_thread::sleep_for(10ms);
-    // }
     process_frames();
   }
 }
@@ -58,7 +48,7 @@ MicronTrackerDriver::~MicronTrackerDriver()
 void MicronTrackerDriver::init_mtc()
 {
   // Initialize MTC library and connect to cameras
-  std::optional<std::string> calibrationDir = getMTHome();
+  std::optional<std::string> calibrationDir = mtr::getMTHome();
   if (!calibrationDir) {
     RCLCPP_ERROR(this->get_logger(), "MTHome environment variable not set");
     return;
@@ -67,46 +57,44 @@ void MicronTrackerDriver::init_mtc()
   std::string markerDir = fs::path(*calibrationDir) / "Markers";
   std::string calibrationDirPath = fs::path(*calibrationDir) / "CalibrationFiles";
 
-  MTC(mtc::Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
+  MTR(mtc::Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
   if (mtc::Cameras_Count() < 1) {
     RCLCPP_ERROR(this->get_logger(), "No camera found!");
     return;
   }
 
-  MTC(mtc::Cameras_ItemGet(0, &CurrCamera));
-  MTC(mtc::Camera_SerialNumberGet(CurrCamera, &CurrCameraSerialNum));
+  MTR(mtc::Cameras_ItemGet(0, &CurrCamera));
+  MTR(mtc::Camera_SerialNumberGet(CurrCamera, &CurrCameraSerialNum));
   RCLCPP_INFO(this->get_logger(), "Attached %d camera(s). Curr camera is %d", mtc::Cameras_Count(),
               CurrCameraSerialNum);
 
   mtc::mtStreamingModeStruct mode{
-    mtc::mtFrameType::Alternating,
-    mtc::mtDecimation::Dec41,
-    mtc::mtBitDepth::Bpp12};
+    mtr::stringToFrameType(params_.mt.frame_type),
+    mtr::stringToDecimation(params_.mt.decimation),
+    mtr::stringToBitDepth(params_.mt.bit_depth)};
 
-  MTC(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
+  MTR(mtc::Cameras_StreamingModeSet(mode, CurrCameraSerialNum));
 
-  int x, y;
-  MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
-  RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", x, y);
+  auto t0 = now();
+  mtc::ResetMTTime();
+  auto t1 = now();
+  mt_epoch = t0 + (t1 - t0) * 0.5;
 
+  int width, height;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+  RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", width, height);
 
-  IsBackGroundProcessingEnabled = true;
+  IsBackGroundProcessingEnabled = false;
   if (IsBackGroundProcessingEnabled) {
-    MTC(mtc::Markers_BackGroundProcessSet(true));
+    MTR(mtc::Markers_BackGroundProcessSet(true));
     RCLCPP_INFO(this->get_logger(), "Background processing enabled");
   }
 
-  MTC(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
+  MTR(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
   RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", mtc::Markers_TemplatesCount());
 
   IdentifiedMarkers = mtc::Collection_New();
   PoseXf = mtc::Xform3D_New();
-}
-
-void MicronTrackerDriver::on_timer()
-{
-  // Process frames and obtain measurements
-  process_frames();
 }
 
 void MicronTrackerDriver::process_frames()
@@ -116,77 +104,86 @@ void MicronTrackerDriver::process_frames()
   if (IsBackGroundProcessingEnabled) {
     mtc::Markers_GetIdentifiedMarkersFromBackgroundThread(CurrCamera);
   } else {
-    MTC(mtc::Cameras_GrabFrame(0));
-    MTC(mtc::Markers_ProcessFrame(0));
+    MTR(mtc::Cameras_GrabFrame(0));
+    MTR(mtc::Markers_ProcessFrame(0));
   }
 
-  int x, y;
-  MTC(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
-  x /= 4;
-  y /= 4;
-  int QuarterSizeImageBufferSize = (x * y) * 3;
+  double frame_secs;
+  mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs);
+  auto stamp = [this, frame_secs]() {
+      auto duration = rclcpp::Duration::from_seconds(frame_secs);
+      return this->mt_epoch + duration;
+    }();
+  std_msgs::msg::Header header;
+  header.stamp = stamp;
+  header.frame_id = params_.frame_id;
 
-  std::vector<unsigned char> leftImageBuffer(QuarterSizeImageBufferSize);
-  std::vector<unsigned char> rightImageBuffer(QuarterSizeImageBufferSize);
-  mtc::Camera_24BitQuarterSizeImagesGet(CurrCamera, leftImageBuffer.data(),
-      rightImageBuffer.data());
+  int width, height, step;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+  width /= 4;
+  height /= 4;
+  step = width * 3;
+  bool is_bigendian = false;
+  int image_buffer_size = (width * height) * 3;
+
+  std::vector<unsigned char> left_image_data(image_buffer_size);
+  std::vector<unsigned char> right_image_data(image_buffer_size);
+  std::string encoding = "rgb8";
+  mtc::Camera_24BitQuarterSizeImagesGet(
+    CurrCamera, left_image_data.data(), right_image_data.data());
+
+  auto publish_image = [&](
+    const std::vector<unsigned char> & image_data,
+    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher) {
+      auto image_msg = std::make_unique<sensor_msgs::msg::Image>();
+      image_msg->header = header;
+      image_msg->height = height;
+      image_msg->width = width;
+      image_msg->encoding = encoding;
+      image_msg->is_bigendian = is_bigendian;
+      image_msg->step = step;
+      image_msg->data = image_data;
+      publisher->publish(std::move(image_msg));
+    };
 
   // Publish left image
-  auto left_image_msg = std::make_unique<sensor_msgs::msg::Image>();
-  left_image_msg->header.frame_id = "camera";
-  left_image_msg->header.stamp = now();
-  left_image_msg->height = y;
-  left_image_msg->width = x;
-  left_image_msg->encoding = "rgb8";
-  left_image_msg->is_bigendian = false;
-  left_image_msg->step = 3 * x;
-  left_image_msg->data = std::move(leftImageBuffer);
-  left_image_pub_->publish(std::move(left_image_msg));
+  publish_image(left_image_data, left_image_pub_);
 
   // Publish right image
-  auto right_image_msg = std::make_unique<sensor_msgs::msg::Image>();
-  right_image_msg->header.frame_id = "camera";
-  right_image_msg->header.stamp = now();
-  right_image_msg->height = y;
-  right_image_msg->width = x;
-  right_image_msg->encoding = "rgb8";
-  right_image_msg->is_bigendian = false;
-  right_image_msg->step = 3 * x;
-  right_image_msg->data = std::move(rightImageBuffer);
-  right_image_pub_->publish(std::move(right_image_msg));
+  publish_image(right_image_data, right_image_pub_);
 
-  MTC(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
+  MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
   RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 1000, "identified %d marker(s)",
                        mtc::Collection_Count(IdentifiedMarkers));
+  std::vector<double> position(3);
+  std::vector<double> orientation(4);
 
   for (int j = 1; j <= mtc::Collection_Count(IdentifiedMarkers); j++) {
     mtc::mtHandle Marker = mtc::Collection_Int(IdentifiedMarkers, j);
-    MTC(mtc::Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
+    MTR(mtc::Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
 
     if (IdentifyingCamera != 0) {
       char MarkerName[MT_MAX_STRING_LENGTH];
-      double Position[3], Angle[3];
       // mtc::mtMeasurementHazardCode Hazard;
 
-      MTC(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
-      MTC(mtc::Xform3D_ShiftGet(PoseXf, Position));
-      MTC(mtc::Xform3D_RotAnglesDegsGet(PoseXf, &Angle[0], &Angle[1], &Angle[2]));
-      // MTC(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
+      MTR(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
+      MTR(mtc::Xform3D_ShiftGet(PoseXf, position.data()));
+      MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, orientation.data()));
+      // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
       visualization_msgs::msg::Marker marker;
       marker.type = visualization_msgs::msg::Marker::CUBE;
       marker.id = j;
-      marker.header.frame_id = "camera";
-      marker.header.stamp = now();
+      marker.header = header;
       marker.text = MarkerName;
-      marker.pose.position.x = Position[0] / 1000;
-      marker.pose.position.y = Position[1] / 1000;
-      marker.pose.position.z = Position[2] / 1000;
-      marker.pose.orientation.x = Angle[0];
-      marker.pose.orientation.y = Angle[1];
-      marker.pose.orientation.z = Angle[2];
-      marker.pose.orientation.w = 1.0;
+      marker.pose.position.x = position[0] / 1000;
+      marker.pose.position.y = position[1] / 1000;
+      marker.pose.position.z = position[2] / 1000;
+      marker.pose.orientation.x = orientation[0];
+      marker.pose.orientation.y = orientation[1];
+      marker.pose.orientation.z = orientation[2];
+      marker.pose.orientation.w = orientation[3];
       marker.scale.x = 0.05;
       marker.scale.y = 0.05;
       marker.scale.z = 0.05;
@@ -201,14 +198,6 @@ void MicronTrackerDriver::process_frames()
   // Put the message into a queue to be processed by the middleware.
   // This call is non-blocking.
   marker_array_pub_->publish(std::move(msg));
-}
-
-std::optional<std::string> getMTHome()
-{
-  if (const char * localNamePtr = getenv("MTHome")) {
-    return std::string(localNamePtr);
-  }
-  return std::nullopt;
 }
 
 }  // namespace microntracker_components
