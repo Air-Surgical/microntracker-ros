@@ -164,10 +164,10 @@ void MicronTrackerDriver::process_frames()
     MTR(mtc::Marker_Marker2CameraXfGet(Marker, CurrCamera, PoseXf, &IdentifyingCamera));
 
     if (IdentifyingCamera != 0) {
-      char MarkerName[MT_MAX_STRING_LENGTH];
+      std::string MarkerName(MT_MAX_STRING_LENGTH, '\0');
       // mtc::mtMeasurementHazardCode Hazard;
 
-      MTR(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
+      MTR(mtc::Marker_NameGet(Marker, MarkerName.data(), MT_MAX_STRING_LENGTH, 0));
       MTR(mtc::Xform3D_ShiftGet(PoseXf, position.data()));
       MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, orientation.data()));
       // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
