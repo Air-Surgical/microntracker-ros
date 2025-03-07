@@ -48,14 +48,14 @@ MicronTrackerDriver::~MicronTrackerDriver()
 void MicronTrackerDriver::init_mtc()
 {
   // Initialize MTC library and connect to cameras
-  std::optional<std::string> calibrationDir = mtr::getMTHome();
+  auto calibrationDir = mtr::getMTHome();
   if (!calibrationDir) {
     RCLCPP_ERROR(this->get_logger(), "MTHome environment variable not set");
     return;
   }
 
-  std::string markerDir = fs::path(*calibrationDir) / "Markers";
-  std::string calibrationDirPath = fs::path(*calibrationDir) / "CalibrationFiles";
+  auto markerDir = fs::path(*calibrationDir) / "Markers";
+  auto calibrationDirPath = fs::path(*calibrationDir) / "CalibrationFiles";
 
   MTR(mtc::Cameras_AttachAvailableCameras(calibrationDirPath.c_str()));
   if (mtc::Cameras_Count() < 1) {
