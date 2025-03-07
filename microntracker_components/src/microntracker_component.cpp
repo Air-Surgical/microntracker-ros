@@ -111,7 +111,7 @@ void MicronTrackerDriver::process_frames()
 
   double frame_secs;
   mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs);
-  auto frame_stamp = [this, frame_secs]() {
+  auto stamp = [this, frame_secs]() {
       auto duration = rclcpp::Duration::from_seconds(frame_secs);
       return this->mt_epoch + duration;
     }();
@@ -122,36 +122,36 @@ void MicronTrackerDriver::process_frames()
   height /= 4;
   step = width * 3;
   bool is_bigendian = false;
-  int QuarterSizeImageBufferSize = (width * height) * 3;
+  int image_buffer_size = (width * height) * 3;
 
-  std::vector<unsigned char> leftImageBuffer(QuarterSizeImageBufferSize);
-  std::vector<unsigned char> rightImageBuffer(QuarterSizeImageBufferSize);
+  std::vector<unsigned char> left_image_data(image_buffer_size);
+  std::vector<unsigned char> right_image_data(image_buffer_size);
   std::string encoding = "rgb8";
-  mtc::Camera_24BitQuarterSizeImagesGet(CurrCamera, leftImageBuffer.data(),
-                                            rightImageBuffer.data());
+  mtc::Camera_24BitQuarterSizeImagesGet(
+    CurrCamera, left_image_data.data(), right_image_data.data());
 
   // Publish left image
   auto left_image_msg = std::make_unique<sensor_msgs::msg::Image>();
   left_image_msg->header.frame_id = params_.frame_id;
-  left_image_msg->header.stamp = frame_stamp;
+  left_image_msg->header.stamp = stamp;
   left_image_msg->height = height;
   left_image_msg->width = width;
   left_image_msg->encoding = encoding;
   left_image_msg->is_bigendian = is_bigendian;
   left_image_msg->step = step;
-  left_image_msg->data = std::move(leftImageBuffer);
+  left_image_msg->data = std::move(left_image_data);
   left_image_pub_->publish(std::move(left_image_msg));
 
   // Publish right image
   auto right_image_msg = std::make_unique<sensor_msgs::msg::Image>();
   right_image_msg->header.frame_id = params_.frame_id;
-  right_image_msg->header.stamp = frame_stamp;
+  right_image_msg->header.stamp = stamp;
   right_image_msg->height = height;
   right_image_msg->width = width;
   right_image_msg->encoding = encoding;
   right_image_msg->is_bigendian = is_bigendian;
   right_image_msg->step = step;
-  right_image_msg->data = std::move(rightImageBuffer);
+  right_image_msg->data = std::move(right_image_data);
   right_image_pub_->publish(std::move(right_image_msg));
 
   MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
@@ -178,7 +178,7 @@ void MicronTrackerDriver::process_frames()
       marker.type = visualization_msgs::msg::Marker::CUBE;
       marker.id = j;
       marker.header.frame_id = params_.frame_id;
-      marker.header.stamp = frame_stamp;
+      marker.header.stamp = stamp;
       marker.text = MarkerName;
       marker.pose.position.x = position[0] / 1000;
       marker.pose.position.y = position[1] / 1000;
