@@ -155,6 +155,8 @@ void MicronTrackerDriver::process_frames()
   auto clock = this->get_clock();
   RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 1000, "identified %d marker(s)",
                        mtc::Collection_Count(IdentifiedMarkers));
+  std::vector<double> position(3);
+  std::vector<double> orientation(4);
 
   for (int j = 1; j <= mtc::Collection_Count(IdentifiedMarkers); j++) {
     mtc::mtHandle Marker = mtc::Collection_Int(IdentifiedMarkers, j);
@@ -162,12 +164,11 @@ void MicronTrackerDriver::process_frames()
 
     if (IdentifyingCamera != 0) {
       char MarkerName[MT_MAX_STRING_LENGTH];
-      double Position[3], Quaternion[4];
       // mtc::mtMeasurementHazardCode Hazard;
 
       MTR(mtc::Marker_NameGet(Marker, MarkerName, MT_MAX_STRING_LENGTH, 0));
-      MTR(mtc::Xform3D_ShiftGet(PoseXf, Position));
-      MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, &Quaternion[0]));
+      MTR(mtc::Xform3D_ShiftGet(PoseXf, position.data()));
+      MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, orientation.data()));
       // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
       visualization_msgs::msg::Marker marker;
@@ -176,13 +177,13 @@ void MicronTrackerDriver::process_frames()
       marker.header.frame_id = "camera";
       marker.header.stamp = frame_stamp;
       marker.text = MarkerName;
-      marker.pose.position.x = Position[0] / 1000;
-      marker.pose.position.y = Position[1] / 1000;
-      marker.pose.position.z = Position[2] / 1000;
-      marker.pose.orientation.x = Quaternion[0];
-      marker.pose.orientation.y = Quaternion[1];
-      marker.pose.orientation.z = Quaternion[2];
-      marker.pose.orientation.w = Quaternion[3];
+      marker.pose.position.x = position[0] / 1000;
+      marker.pose.position.y = position[1] / 1000;
+      marker.pose.position.z = position[2] / 1000;
+      marker.pose.orientation.x = orientation[0];
+      marker.pose.orientation.y = orientation[1];
+      marker.pose.orientation.z = orientation[2];
+      marker.pose.orientation.w = orientation[3];
       marker.scale.x = 0.05;
       marker.scale.y = 0.05;
       marker.scale.z = 0.05;
