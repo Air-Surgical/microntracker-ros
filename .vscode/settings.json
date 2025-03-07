@@ -24,10 +24,13 @@
         "devcontainers",
         "dever",
         "eamodio",
+        "microntracker",
         "PTRACE",
+        "rclcpp",
         "rviz",
         "seccomp",
-        "vitaliymaz"
+        "vitaliymaz",
+        "Xform"
     ],
     "cmake.configureOnOpen": false,
     "git.detectSubmodulesLimit": 50,
