@@ -80,10 +80,9 @@ void MicronTrackerDriver::init_mtc()
   auto t1 = now();
   mt_epoch = t0 + (t1 - t0) * 0.5;
 
-  int x, y;
-  MTR(mtc::Camera_ResolutionGet(CurrCamera, &x, &y));
-  RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", x, y);
-
+  int width, height;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+  RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", width, height);
 
   IsBackGroundProcessingEnabled = false;
   if (IsBackGroundProcessingEnabled) {
