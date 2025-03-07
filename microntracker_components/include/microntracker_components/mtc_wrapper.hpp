@@ -4,6 +4,8 @@
 #define MICRONTRACKER_COMPONENTS__MTC_WRAPPER_HPP_
 
 #include <cinttypes>  // Include standard library headers
+#include <optional>
+#include <stdexcept>
 #include <string>
 
 namespace mtc

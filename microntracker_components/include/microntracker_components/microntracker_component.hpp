@@ -4,7 +4,6 @@
 #define MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "microntracker_components/microntracker_components_parameters.hpp"
