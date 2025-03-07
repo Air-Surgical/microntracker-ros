@@ -11,8 +11,8 @@
 #include "microntracker_components/mtc_wrapper.hpp"
 #include "microntracker_components/visibility_control.h"
 #include "rclcpp/rclcpp.hpp"
-#include "visualization_msgs/msg/marker_array.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace microntracker_components
 {

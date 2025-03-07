@@ -114,6 +114,9 @@ void MicronTrackerDriver::process_frames()
       auto duration = rclcpp::Duration::from_seconds(frame_secs);
       return this->mt_epoch + duration;
     }();
+  std_msgs::msg::Header header;
+  header.stamp = stamp;
+  header.frame_id = params_.frame_id;
 
   int width, height, step;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
@@ -129,29 +132,25 @@ void MicronTrackerDriver::process_frames()
   mtc::Camera_24BitQuarterSizeImagesGet(
     CurrCamera, left_image_data.data(), right_image_data.data());
 
+  auto publish_image = [&](
+    const std::vector<unsigned char> & image_data,
+    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher) {
+      auto image_msg = std::make_unique<sensor_msgs::msg::Image>();
+      image_msg->header = header;
+      image_msg->height = height;
+      image_msg->width = width;
+      image_msg->encoding = encoding;
+      image_msg->is_bigendian = is_bigendian;
+      image_msg->step = step;
+      image_msg->data = image_data;
+      publisher->publish(std::move(image_msg));
+    };
+
   // Publish left image
-  auto left_image_msg = std::make_unique<sensor_msgs::msg::Image>();
-  left_image_msg->header.frame_id = params_.frame_id;
-  left_image_msg->header.stamp = stamp;
-  left_image_msg->height = height;
-  left_image_msg->width = width;
-  left_image_msg->encoding = encoding;
-  left_image_msg->is_bigendian = is_bigendian;
-  left_image_msg->step = step;
-  left_image_msg->data = std::move(left_image_data);
-  left_image_pub_->publish(std::move(left_image_msg));
+  publish_image(left_image_data, left_image_pub_);
 
   // Publish right image
-  auto right_image_msg = std::make_unique<sensor_msgs::msg::Image>();
-  right_image_msg->header.frame_id = params_.frame_id;
-  right_image_msg->header.stamp = stamp;
-  right_image_msg->height = height;
-  right_image_msg->width = width;
-  right_image_msg->encoding = encoding;
-  right_image_msg->is_bigendian = is_bigendian;
-  right_image_msg->step = step;
-  right_image_msg->data = std::move(right_image_data);
-  right_image_pub_->publish(std::move(right_image_msg));
+  publish_image(right_image_data, right_image_pub_);
 
   MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
@@ -176,8 +175,7 @@ void MicronTrackerDriver::process_frames()
       visualization_msgs::msg::Marker marker;
       marker.type = visualization_msgs::msg::Marker::CUBE;
       marker.id = j;
-      marker.header.frame_id = params_.frame_id;
-      marker.header.stamp = stamp;
+      marker.header = header;
       marker.text = MarkerName;
       marker.pose.position.x = position[0] / 1000;
       marker.pose.position.y = position[1] / 1000;
