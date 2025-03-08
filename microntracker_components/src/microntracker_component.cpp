@@ -143,10 +143,8 @@ void MicronTrackerDriver::process_frames()
   std::string encoding = params_.encoding;
   if (encoding == "rgb8") {
     depth = 3;
-  } else if (encoding == "mono16") {
+  } else {  // default mono16
     depth = 2;
-  } else {
-    depth = 2;  // default case
   }
 
   step = width * depth;
