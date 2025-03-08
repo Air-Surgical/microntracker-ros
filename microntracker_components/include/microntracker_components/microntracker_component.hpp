@@ -34,7 +34,6 @@ protected:
 
 private:
   bool is_alive;
-  bool IsBackGroundProcessingEnabled;
   int CurrCameraSerialNum;
   mtc::mtHandle CurrCamera;
   mtc::mtHandle IdentifiedMarkers;

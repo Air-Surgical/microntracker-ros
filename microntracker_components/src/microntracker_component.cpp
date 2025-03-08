@@ -85,12 +85,6 @@ void MicronTrackerDriver::init_mtc()
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
   RCLCPP_INFO(this->get_logger(), "The camera resolution is %d x %d", width, height);
 
-  IsBackGroundProcessingEnabled = false;
-  if (IsBackGroundProcessingEnabled) {
-    MTR(mtc::Markers_BackGroundProcessSet(true));
-    RCLCPP_INFO(this->get_logger(), "Background processing enabled");
-  }
-
   MTR(mtc::Markers_LoadTemplates(const_cast<char *>(markerDir.c_str())));
   RCLCPP_INFO(this->get_logger(), "Loaded %d marker templates", mtc::Markers_TemplatesCount());
 
@@ -100,12 +94,8 @@ void MicronTrackerDriver::init_mtc()
 
 void MicronTrackerDriver::process_frame()
 {
-  if (IsBackGroundProcessingEnabled) {
-    mtc::Markers_GetIdentifiedMarkersFromBackgroundThread(CurrCamera);
-  } else {
-    MTR(mtc::Cameras_GrabFrame(0));
-    MTR(mtc::Markers_ProcessFrame(0));
-  }
+  MTR(mtc::Cameras_GrabFrame(0));
+  MTR(mtc::Markers_ProcessFrame(0));
 
   double frame_secs;
   MTR(mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs));
