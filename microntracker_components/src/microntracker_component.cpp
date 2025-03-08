@@ -3,13 +3,10 @@
 #include "microntracker_components/microntracker_component.hpp"
 
 #include <chrono>
-#include <iostream>
-#include <memory>
-#include <utility>
 #include <filesystem>
-#include <string>
-#include <optional>
 #include <map>
+#include <memory>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 
