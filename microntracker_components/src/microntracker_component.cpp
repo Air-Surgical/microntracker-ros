@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <string>
 #include <optional>
+#include <map>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -120,7 +121,7 @@ void MicronTrackerDriver::process_frames()
   publish_markers(header);
 }
 
-void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header &header)
+void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
 {
   auto msg = std::make_unique<visualization_msgs::msg::MarkerArray>();
   MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
@@ -168,63 +169,50 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header &header)
   marker_array_pub_->publish(std::move(msg));
 }
 
-void MicronTrackerDriver::publish_images(const std_msgs::msg::Header &header)
+void MicronTrackerDriver::publish_images(const std_msgs::msg::Header & header)
 {
-  int width, height, step, decimation, depth;
+  int width, height, step;
   std::string encoding = params_.encoding;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
   mtc::mtStreamingModeStruct mode;
   MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
 
-  using ImagesGetFunc = mtc::mtCompletionCode(*)(mtc::mtHandle, unsigned char*, unsigned char*);
-  ImagesGetFunc images_get = nullptr;
+  struct DecimationParams
+  {
+    int decimation;
+    int depth;
+    mtc::mtCompletionCode (*images_get)(mtc::mtHandle, unsigned char *, unsigned char *);
+  };
 
-  switch (mode.decimation) {
-    case mtc::mtDecimation::Dec11:
-      decimation = 1;
-      if (encoding == "rgb8") {
-        depth = 3;
-        images_get = mtc::Camera_24BitImagesGet;
-      } else {  // default mono16
-        depth = 2;
-        images_get = mtc::Camera_ImagesGet;
-      }
-      break;
-    case mtc::mtDecimation::Dec21:
-      decimation = 2;
-      if (encoding == "rgb8") {
-        depth = 3;
-        images_get = mtc::Camera_24BitHalfSizeImagesGet;
-      } else {  // default mono16
-        depth = 2;
-        images_get = mtc::Camera_HalfSizeImagesGet;
-      }
-      break;
-    case mtc::mtDecimation::Dec41:
-      decimation = 4;
-      if (encoding == "rgb8") {
-        depth = 3;
-        images_get = mtc::Camera_24BitQuarterSizeImagesGet;
-      } else {  // default mono16
-        depth = 2;
-        images_get = mtc::Camera_QuarterSizeImagesGet;
-      }
-      break;
-    case mtc::mtDecimation::None:
-    default:
-      RCLCPP_ERROR(this->get_logger(), "Invalid decimation mode");
-      return;
+  const std::map<mtc::mtDecimation, DecimationParams> decimation_map = {
+    {mtc::mtDecimation::Dec11,
+      {1, encoding == "rgb8" ? 3 : 2,
+        encoding == "rgb8" ? mtc::Camera_24BitImagesGet : mtc::Camera_ImagesGet}},
+    {mtc::mtDecimation::Dec21,
+      {2, encoding == "rgb8" ? 3 : 2,
+        encoding == "rgb8" ? mtc::Camera_24BitHalfSizeImagesGet : mtc::Camera_HalfSizeImagesGet}},
+    {mtc::mtDecimation::Dec41,
+      {4, encoding == "rgb8" ? 3 : 2,
+        encoding ==
+        "rgb8" ? mtc::Camera_24BitQuarterSizeImagesGet : mtc::Camera_QuarterSizeImagesGet}}
+  };
+
+  auto it = decimation_map.find(mode.decimation);
+  if (it == decimation_map.end()) {
+    RCLCPP_ERROR(this->get_logger(), "Invalid decimation mode");
+    return;
   }
 
-  width /= decimation;
-  height /= decimation;
-  step = width * depth;
+  const auto & params = it->second;
+  width /= params.decimation;
+  height /= params.decimation;
+  step = width * params.depth;
   bool is_bigendian = false;
-  int image_buffer_size = (width * height) * depth;
+  int image_buffer_size = (width * height) * params.depth;
 
   std::vector<unsigned char> image_left_data(image_buffer_size);
   std::vector<unsigned char> image_right_data(image_buffer_size);
-  MTR(images_get(CurrCamera, image_left_data.data(), image_right_data.data()));
+  MTR(params.images_get(CurrCamera, image_left_data.data(), image_right_data.data()));
 
   auto publish_image = [&](
     const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher,
