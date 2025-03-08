@@ -30,7 +30,7 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
   is_alive = true;
   process_thread = std::thread([this](){
         while (is_alive) {
-          process_frames();
+          process_frame();
         }
   });
 }
@@ -98,7 +98,7 @@ void MicronTrackerDriver::init_mtc()
   PoseXf = mtc::Xform3D_New();
 }
 
-void MicronTrackerDriver::process_frames()
+void MicronTrackerDriver::process_frame()
 {
   if (IsBackGroundProcessingEnabled) {
     mtc::Markers_GetIdentifiedMarkersFromBackgroundThread(CurrCamera);

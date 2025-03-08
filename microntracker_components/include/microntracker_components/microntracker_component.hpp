@@ -28,7 +28,7 @@ public:
 
 protected:
   void init_mtc();
-  void process_frames();
+  void process_frame();
   void publish_images(const std_msgs::msg::Header & header);
   void publish_markers(const std_msgs::msg::Header & header);
 
