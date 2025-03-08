@@ -26,8 +26,8 @@ public:
 protected:
   void init_mtc();
   void process_frames();
-  void publish_images(const std_msgs::msg::Header &header);
-  void publish_markers(const std_msgs::msg::Header &header);
+  void publish_images(const std_msgs::msg::Header & header);
+  void publish_markers(const std_msgs::msg::Header & header);
 
 private:
   bool IsBackGroundProcessingEnabled;
