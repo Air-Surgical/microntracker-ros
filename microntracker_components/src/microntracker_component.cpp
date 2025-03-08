@@ -139,8 +139,15 @@ void MicronTrackerDriver::process_frames()
   }
   width /= decimation;
   height /= decimation;
-  std::string encoding = "rgb8";
-  depth = 3;
+
+  std::string encoding = params_.encoding;
+  if (encoding == "rgb8") {
+    depth = 3;
+  } else if (encoding == "mono16") {
+    depth = 2;
+  } else {
+    depth = 2;  // default case
+  }
 
   step = width * depth;
   bool is_bigendian = false;
