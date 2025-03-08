@@ -118,10 +118,27 @@ void MicronTrackerDriver::process_frames()
   header.stamp = stamp;
   header.frame_id = params_.frame_id;
 
-  int width, height, step;
+  int width, height, step, decimation;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
-  width /= 4;
-  height /= 4;
+  mtc::mtStreamingModeStruct mode;
+  MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
+  switch (mode.decimation) {
+    case mtc::mtDecimation::Dec11:
+      decimation = 1;
+      break;
+    case mtc::mtDecimation::Dec21:
+      decimation = 2;
+      break;
+    case mtc::mtDecimation::Dec41:
+      decimation = 4;
+      break;
+    case mtc::mtDecimation::None:
+    default:
+      RCLCPP_ERROR(this->get_logger(), "Invalid decimation mode");
+      return;
+  }
+  width /= decimation;
+  height /= decimation;
   step = width * 3;
   bool is_bigendian = false;
   int image_buffer_size = (width * height) * 3;
