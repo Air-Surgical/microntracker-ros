@@ -1,8 +1,16 @@
 microntracker_components:
+  encoding:
+    type: string
+    default_value: "rgb8"
+    description: "Sets the encoding for images"
+    validation:
+        one_of<>: [ [ "mono16", "rgb8" ] ]
+          # - "mono16" # 16-bit grayscale image
+          # - "rgb8" # 24-bit RGB image
   frame_id:
     type: string
     default_value: "camera"
-    description: "Sets the frame_id for the camera"
+    description: "Sets the frame_id for messages"
     validation:
       not_empty<>: []
   mt:
