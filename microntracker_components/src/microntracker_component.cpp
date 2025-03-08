@@ -39,7 +39,8 @@ MicronTrackerDriver::~MicronTrackerDriver()
 {
   is_alive = false;
   process_thread.join();
-  mtc::Cameras_Detach();
+  // FIXME: this sigfaults teardown
+  // mtc::Cameras_Detach();
   mtc::Camera_Free(CurrCamera);
   mtc::Collection_Free(IdentifiedMarkers);
   mtc::Xform3D_Free(PoseXf);
