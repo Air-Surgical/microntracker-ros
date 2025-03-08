@@ -27,15 +27,18 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
   // Initialize MTC library and connect to cameras
   init_mtc();
-
-  // while node is running, process frames
-  while (rclcpp::ok()) {
-    process_frames();
-  }
+  is_alive = true;
+  process_thread = std::thread([this](){
+        while (is_alive) {
+          process_frames();
+        }
+  });
 }
 
 MicronTrackerDriver::~MicronTrackerDriver()
 {
+  is_alive = false;
+  process_thread.join();
   mtc::Cameras_Detach();
   mtc::Camera_Free(CurrCamera);
   mtc::Collection_Free(IdentifiedMarkers);

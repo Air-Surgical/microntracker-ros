@@ -3,6 +3,7 @@
 #ifndef MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 #define MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 
+#include <thread>
 #include <memory>
 #include <string>
 
@@ -32,6 +33,7 @@ protected:
   void publish_markers(const std_msgs::msg::Header & header);
 
 private:
+  bool is_alive;
   bool IsBackGroundProcessingEnabled;
   int CurrCameraSerialNum;
   mtc::mtHandle CurrCamera;
@@ -46,6 +48,7 @@ private:
   size_t count_;
   std::shared_ptr<ParamListener> param_listener_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::thread process_thread;
 };
 
 }  // namespace microntracker_components
