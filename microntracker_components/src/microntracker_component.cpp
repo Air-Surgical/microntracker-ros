@@ -17,8 +17,8 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
   marker_array_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
-  image_left_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
-  image_right_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
+  image_left_pub_ = create_publisher<sensor_msgs::msg::Image>("left/image_raw", 10);
+  image_right_pub_ = create_publisher<sensor_msgs::msg::Image>("right/image_raw", 10);
 
   param_listener_ = std::make_shared<ParamListener>(get_node_parameters_interface());
   params_ = param_listener_->get_params();
