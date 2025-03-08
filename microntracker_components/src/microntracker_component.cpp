@@ -167,44 +167,42 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
 
 void MicronTrackerDriver::publish_images(const std_msgs::msg::Header & header)
 {
-  int width, height, step;
-  std::string encoding = params_.encoding;
-  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
-  mtc::mtStreamingModeStruct mode;
-  MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
-
   struct DecimationParams
   {
     int decimation;
-    int depth;
     mtc::mtCompletionCode (*images_get)(mtc::mtHandle, unsigned char *, unsigned char *);
   };
 
+  std::string encoding = params_.encoding;
   const std::map<mtc::mtDecimation, DecimationParams> decimation_map = {
     {mtc::mtDecimation::Dec11,
-      {1, encoding == "rgb8" ? 3 : 2,
-        encoding == "rgb8" ? mtc::Camera_24BitImagesGet : mtc::Camera_ImagesGet}},
+      {1, encoding ==
+        "rgb8" ? mtc::Camera_24BitImagesGet : mtc::Camera_ImagesGet}},
     {mtc::mtDecimation::Dec21,
-      {2, encoding == "rgb8" ? 3 : 2,
-        encoding == "rgb8" ? mtc::Camera_24BitHalfSizeImagesGet : mtc::Camera_HalfSizeImagesGet}},
+      {2, encoding ==
+        "rgb8" ? mtc::Camera_24BitHalfSizeImagesGet : mtc::Camera_HalfSizeImagesGet}},
     {mtc::mtDecimation::Dec41,
-      {4, encoding == "rgb8" ? 3 : 2,
-        encoding ==
+      {4, encoding ==
         "rgb8" ? mtc::Camera_24BitQuarterSizeImagesGet : mtc::Camera_QuarterSizeImagesGet}}
   };
 
+  mtc::mtStreamingModeStruct mode;
+  MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
   auto it = decimation_map.find(mode.decimation);
   if (it == decimation_map.end()) {
     RCLCPP_ERROR(this->get_logger(), "Invalid decimation mode");
     return;
   }
-
   const auto & params = it->second;
+
+  int width, height, step, depth;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
   width /= params.decimation;
   height /= params.decimation;
-  step = width * params.depth;
-  bool is_bigendian = false;
-  int image_buffer_size = (width * height) * params.depth;
+
+  depth = encoding == "rgb8" ? 3 : 2;
+  step = width * depth;
+  int image_buffer_size = (width * height) * depth;
 
   std::vector<unsigned char> image_left_data(image_buffer_size);
   std::vector<unsigned char> image_right_data(image_buffer_size);
@@ -218,7 +216,7 @@ void MicronTrackerDriver::publish_images(const std_msgs::msg::Header & header)
       image_msg->height = height;
       image_msg->width = width;
       image_msg->encoding = encoding;
-      image_msg->is_bigendian = is_bigendian;
+      image_msg->is_bigendian = false;
       image_msg->step = step;
       image_msg->data = data;
       publisher->publish(std::move(image_msg));
