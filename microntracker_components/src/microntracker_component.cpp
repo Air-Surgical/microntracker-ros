@@ -1,13 +1,11 @@
 // Copyright 2025 Air Surgical, Inc.
 
-#include "microntracker_components/microntracker_component.hpp"
-
 #include <chrono>
 #include <filesystem>
 #include <map>
 #include <string>
 
-#include "rclcpp/rclcpp.hpp"
+#include "microntracker_components/microntracker_component.hpp"
 
 using namespace std::chrono_literals;
 namespace fs = std::filesystem;
@@ -24,6 +22,8 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
   param_listener_ = std::make_shared<ParamListener>(get_node_parameters_interface());
   params_ = param_listener_->get_params();
+
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
   // Initialize MTC library and connect to cameras
   init_mtc();
@@ -160,6 +160,19 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
       marker.color.b = 0.0;
       marker.color.a = 1.0;
       msg->markers.push_back(marker);
+
+      // Publish the transform
+      geometry_msgs::msg::TransformStamped transform;
+      transform.header = header;
+      transform.child_frame_id = MarkerName;
+      transform.transform.translation.x = position[0] / 1000;
+      transform.transform.translation.y = position[1] / 1000;
+      transform.transform.translation.z = position[2] / 1000;
+      transform.transform.rotation.x = orientation[0];
+      transform.transform.rotation.y = orientation[1];
+      transform.transform.rotation.z = orientation[2];
+      transform.transform.rotation.w = orientation[3];
+      tf_broadcaster_->sendTransform(transform);
     }
   }
   marker_array_pub_->publish(std::move(msg));

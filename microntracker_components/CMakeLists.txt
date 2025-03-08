@@ -13,6 +13,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
 generate_parameter_library(
@@ -31,6 +32,7 @@ ament_target_dependencies(microntracker_component
   rclcpp_components
   sensor_msgs
   std_msgs
+  tf2_ros
   visualization_msgs
 )
 target_link_libraries(microntracker_component
