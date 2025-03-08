@@ -1,7 +1,7 @@
 microntracker_components:
   encoding:
     type: string
-    default_value: "mono16"
+    default_value: "rgb8"
     description: "Sets the encoding for images"
     validation:
         one_of<>: [ [ "mono16", "rgb8" ] ]
