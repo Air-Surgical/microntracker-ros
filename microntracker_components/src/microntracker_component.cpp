@@ -99,8 +99,6 @@ void MicronTrackerDriver::init_mtc()
 
 void MicronTrackerDriver::process_frames()
 {
-  auto msg = std::make_unique<visualization_msgs::msg::MarkerArray>();
-
   if (IsBackGroundProcessingEnabled) {
     mtc::Markers_GetIdentifiedMarkersFromBackgroundThread(CurrCamera);
   } else {
@@ -118,61 +116,13 @@ void MicronTrackerDriver::process_frames()
   header.stamp = stamp;
   header.frame_id = params_.frame_id;
 
-  int width, height, step, decimation, depth;
-  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
-  mtc::mtStreamingModeStruct mode;
-  MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
-  switch (mode.decimation) {
-    case mtc::mtDecimation::Dec11:
-      decimation = 1;
-      break;
-    case mtc::mtDecimation::Dec21:
-      decimation = 2;
-      break;
-    case mtc::mtDecimation::Dec41:
-      decimation = 4;
-      break;
-    case mtc::mtDecimation::None:
-    default:
-      RCLCPP_ERROR(this->get_logger(), "Invalid decimation mode");
-      return;
-  }
-  width /= decimation;
-  height /= decimation;
+  publish_images(header);
+  publish_markers(header);
+}
 
-  std::string encoding = params_.encoding;
-  if (encoding == "rgb8") {
-    depth = 3;
-  } else {  // default mono16
-    depth = 2;
-  }
-
-  step = width * depth;
-  bool is_bigendian = false;
-  int image_buffer_size = (width * height) * depth;
-
-  std::vector<unsigned char> image_left_data(image_buffer_size);
-  std::vector<unsigned char> image_right_data(image_buffer_size);
-  MTR(mtc::Camera_24BitQuarterSizeImagesGet(
-    CurrCamera, image_left_data.data(), image_right_data.data()));
-
-  auto publish_image = [&](
-    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher,
-    const std::vector<unsigned char> & data) {
-      auto image_msg = std::make_unique<sensor_msgs::msg::Image>();
-      image_msg->header = header;
-      image_msg->height = height;
-      image_msg->width = width;
-      image_msg->encoding = encoding;
-      image_msg->is_bigendian = is_bigendian;
-      image_msg->step = step;
-      image_msg->data = data;
-      publisher->publish(std::move(image_msg));
-    };
-
-  publish_image(image_left_pub_, image_left_data);
-  publish_image(image_right_pub_, image_right_data);
-
+void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header &header)
+{
+  auto msg = std::make_unique<visualization_msgs::msg::MarkerArray>();
   MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
   RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 1000, "identified %d marker(s)",
@@ -215,10 +165,82 @@ void MicronTrackerDriver::process_frames()
       msg->markers.push_back(marker);
     }
   }
-
-  // Put the message into a queue to be processed by the middleware.
-  // This call is non-blocking.
   marker_array_pub_->publish(std::move(msg));
+}
+
+void MicronTrackerDriver::publish_images(const std_msgs::msg::Header &header)
+{
+  int width, height, step, decimation, depth;
+  std::string encoding = params_.encoding;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+  mtc::mtStreamingModeStruct mode;
+  MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
+
+  using ImagesGetFunc = mtc::mtCompletionCode(*)(mtc::mtHandle, unsigned char*, unsigned char*);
+  ImagesGetFunc images_get = nullptr;
+
+  switch (mode.decimation) {
+    case mtc::mtDecimation::Dec11:
+      decimation = 1;
+      if (encoding == "rgb8") {
+        depth = 3;
+        images_get = mtc::Camera_24BitImagesGet;
+      } else {  // default mono16
+        depth = 2;
+        images_get = mtc::Camera_ImagesGet;
+      }
+      break;
+    case mtc::mtDecimation::Dec21:
+      decimation = 2;
+      if (encoding == "rgb8") {
+        depth = 3;
+        images_get = mtc::Camera_24BitHalfSizeImagesGet;
+      } else {  // default mono16
+        depth = 2;
+        images_get = mtc::Camera_HalfSizeImagesGet;
+      }
+      break;
+    case mtc::mtDecimation::Dec41:
+      decimation = 4;
+      if (encoding == "rgb8") {
+        depth = 3;
+        images_get = mtc::Camera_24BitQuarterSizeImagesGet;
+      } else {  // default mono16
+        depth = 2;
+        images_get = mtc::Camera_QuarterSizeImagesGet;
+      }
+      break;
+    case mtc::mtDecimation::None:
+    default:
+      RCLCPP_ERROR(this->get_logger(), "Invalid decimation mode");
+      return;
+  }
+
+  width /= decimation;
+  height /= decimation;
+  step = width * depth;
+  bool is_bigendian = false;
+  int image_buffer_size = (width * height) * depth;
+
+  std::vector<unsigned char> image_left_data(image_buffer_size);
+  std::vector<unsigned char> image_right_data(image_buffer_size);
+  MTR(images_get(CurrCamera, image_left_data.data(), image_right_data.data()));
+
+  auto publish_image = [&](
+    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher,
+    const std::vector<unsigned char> & data) {
+      auto image_msg = std::make_unique<sensor_msgs::msg::Image>();
+      image_msg->header = header;
+      image_msg->height = height;
+      image_msg->width = width;
+      image_msg->encoding = encoding;
+      image_msg->is_bigendian = is_bigendian;
+      image_msg->step = step;
+      image_msg->data = data;
+      publisher->publish(std::move(image_msg));
+    };
+  publish_image(image_left_pub_, image_left_data);
+  publish_image(image_right_pub_, image_right_data);
 }
 
 }  // namespace microntracker_components
