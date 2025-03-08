@@ -35,8 +35,8 @@ private:
   mtc::mtHandle IdentifyingCamera;
   mtc::mtHandle PoseXf;
   Params params_;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_image_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_image_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_left_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_right_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
   rclcpp::Time mt_epoch;
   size_t count_;

@@ -22,8 +22,8 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
   marker_array_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
-  left_image_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
-  right_image_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
+  image_left_pub_ = create_publisher<sensor_msgs::msg::Image>("left_image", 10);
+  image_right_pub_ = create_publisher<sensor_msgs::msg::Image>("right_image", 10);
 
   param_listener_ = std::make_shared<ParamListener>(get_node_parameters_interface());
   params_ = param_listener_->get_params();
@@ -118,7 +118,7 @@ void MicronTrackerDriver::process_frames()
   header.stamp = stamp;
   header.frame_id = params_.frame_id;
 
-  int width, height, step, decimation;
+  int width, height, step, decimation, depth;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
   mtc::mtStreamingModeStruct mode;
   MTR(mtc::Camera_StreamingModeGet(CurrCamera, &mode));
@@ -139,19 +139,21 @@ void MicronTrackerDriver::process_frames()
   }
   width /= decimation;
   height /= decimation;
-  step = width * 3;
-  bool is_bigendian = false;
-  int image_buffer_size = (width * height) * 3;
-
-  std::vector<unsigned char> left_image_data(image_buffer_size);
-  std::vector<unsigned char> right_image_data(image_buffer_size);
   std::string encoding = "rgb8";
+  depth = 3;
+
+  step = width * depth;
+  bool is_bigendian = false;
+  int image_buffer_size = (width * height) * depth;
+
+  std::vector<unsigned char> image_left_data(image_buffer_size);
+  std::vector<unsigned char> image_right_data(image_buffer_size);
   MTR(mtc::Camera_24BitQuarterSizeImagesGet(
-    CurrCamera, left_image_data.data(), right_image_data.data()));
+    CurrCamera, image_left_data.data(), image_right_data.data()));
 
   auto publish_image = [&](
-    const std::vector<unsigned char> & image_data,
-    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher) {
+    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr & publisher,
+    const std::vector<unsigned char> & data) {
       auto image_msg = std::make_unique<sensor_msgs::msg::Image>();
       image_msg->header = header;
       image_msg->height = height;
@@ -159,15 +161,12 @@ void MicronTrackerDriver::process_frames()
       image_msg->encoding = encoding;
       image_msg->is_bigendian = is_bigendian;
       image_msg->step = step;
-      image_msg->data = image_data;
+      image_msg->data = data;
       publisher->publish(std::move(image_msg));
     };
 
-  // Publish left image
-  publish_image(left_image_data, left_image_pub_);
-
-  // Publish right image
-  publish_image(right_image_data, right_image_pub_);
+  publish_image(image_left_pub_, image_left_data);
+  publish_image(image_right_pub_, image_right_data);
 
   MTR(mtc::Markers_IdentifiedMarkersGet(0, IdentifiedMarkers));
   auto clock = this->get_clock();
