@@ -16,9 +16,11 @@ namespace microntracker_components
 MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 : Node("microntracker_driver", options), count_(0)
 {
-  marker_array_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
+  camera_info_left_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("left/camera_info", 10);
+  camera_info_right_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("right/camera_info", 10);
   image_left_pub_ = create_publisher<sensor_msgs::msg::Image>("left/image_raw", 10);
   image_right_pub_ = create_publisher<sensor_msgs::msg::Image>("right/image_raw", 10);
+  marker_array_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
 
   param_listener_ = std::make_shared<ParamListener>(get_node_parameters_interface());
   params_ = param_listener_->get_params();
@@ -207,7 +209,7 @@ void MicronTrackerDriver::publish_images(const std_msgs::msg::Header & header)
   width /= params.decimation;
   height /= params.decimation;
 
-  depth = encoding == "rgb8" ? 3 : 2;
+  depth = encoding == "rgb8" ? 3 : 3;
   step = width * depth;
   int image_buffer_size = (width * height) * depth;
 

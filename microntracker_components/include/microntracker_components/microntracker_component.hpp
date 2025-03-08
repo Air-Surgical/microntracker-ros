@@ -8,6 +8,7 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 #include "visualization_msgs/msg/marker_array.hpp"
@@ -40,6 +41,8 @@ private:
   mtc::mtHandle IdentifyingCamera;
   mtc::mtHandle PoseXf;
   Params params_;
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_left_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_right_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_left_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_right_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
