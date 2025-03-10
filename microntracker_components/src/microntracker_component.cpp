@@ -133,6 +133,8 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
 
       MTR(mtc::Marker_NameGet(Marker, MarkerName.data(), MT_MAX_STRING_LENGTH, 0));
       MTR(mtc::Xform3D_ShiftGet(PoseXf, position.data()));
+      // TODO(@ruffsl): why do we need this inverse?
+      MTR(mtc::Xform3D_Inverse(PoseXf, PoseXf));
       MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, orientation.data()));
       // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
 
