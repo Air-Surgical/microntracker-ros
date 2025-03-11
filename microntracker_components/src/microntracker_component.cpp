@@ -122,6 +122,8 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
                        mtc::Collection_Count(IdentifiedMarkers));
   std::vector<double> position(3);
   std::vector<double> orientation(4);
+  std::vector<double> tooltip_position(3);
+  std::vector<double> tooltip_orientation(4);
 
   for (int j = 1; j <= mtc::Collection_Count(IdentifiedMarkers); j++) {
     mtc::mtHandle Marker = mtc::Collection_Int(IdentifiedMarkers, j);
@@ -132,11 +134,20 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
       // mtc::mtMeasurementHazardCode Hazard;
 
       MTR(mtc::Marker_NameGet(Marker, MarkerName.data(), MT_MAX_STRING_LENGTH, 0));
+      MarkerName.resize(std::strlen(MarkerName.c_str()));
+
       MTR(mtc::Xform3D_ShiftGet(PoseXf, position.data()));
       // TODO(@ruffsl): why do we need this inverse?
       MTR(mtc::Xform3D_Inverse(PoseXf, PoseXf));
       MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf, orientation.data()));
       // MTR(mtc::Xform3D_HazardCodeGet(PoseXf, &Hazard));
+
+      auto PoseXf_Tooltip = mtc::Xform3D_New();
+      MTR(mtc::Marker_Tooltip2MarkerXfGet(Marker, PoseXf_Tooltip));
+      MTR(mtc::Xform3D_ShiftGet(PoseXf_Tooltip, tooltip_position.data()));
+      MTR(mtc::Xform3D_Inverse(PoseXf_Tooltip, PoseXf_Tooltip));
+      MTR(mtc::Xform3D_RotQuaternionsGet(PoseXf_Tooltip, tooltip_orientation.data()));
+      mtc::Xform3D_Free(PoseXf_Tooltip);
 
       visualization_msgs::msg::Marker marker;
       marker.type = visualization_msgs::msg::Marker::CUBE;
@@ -160,17 +171,30 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
       msg->markers.push_back(marker);
 
       // Publish the transform
-      geometry_msgs::msg::TransformStamped transform;
-      transform.header = header;
-      transform.child_frame_id = MarkerName;
-      transform.transform.translation.x = position[0] / 1000;
-      transform.transform.translation.y = position[1] / 1000;
-      transform.transform.translation.z = position[2] / 1000;
-      transform.transform.rotation.x = orientation[0];
-      transform.transform.rotation.y = orientation[1];
-      transform.transform.rotation.z = orientation[2];
-      transform.transform.rotation.w = orientation[3];
-      tf_broadcaster_->sendTransform(transform);
+      geometry_msgs::msg::TransformStamped marker_tfs;
+      marker_tfs.header = header;
+      marker_tfs.child_frame_id = MarkerName;
+      marker_tfs.transform.translation.x = position[0] / 1000;
+      marker_tfs.transform.translation.y = position[1] / 1000;
+      marker_tfs.transform.translation.z = position[2] / 1000;
+      marker_tfs.transform.rotation.x = orientation[0];
+      marker_tfs.transform.rotation.y = orientation[1];
+      marker_tfs.transform.rotation.z = orientation[2];
+      marker_tfs.transform.rotation.w = orientation[3];
+      tf_broadcaster_->sendTransform(marker_tfs);
+
+      geometry_msgs::msg::TransformStamped tooltip_tfs;
+      tooltip_tfs.header = header;
+      tooltip_tfs.header.frame_id = MarkerName;
+      tooltip_tfs.child_frame_id = MarkerName + "_tooltip";
+      tooltip_tfs.transform.translation.x = tooltip_position[0] / 1000;
+      tooltip_tfs.transform.translation.y = tooltip_position[1] / 1000;
+      tooltip_tfs.transform.translation.z = tooltip_position[2] / 1000;
+      tooltip_tfs.transform.rotation.x = tooltip_orientation[0];
+      tooltip_tfs.transform.rotation.y = tooltip_orientation[1];
+      tooltip_tfs.transform.rotation.z = tooltip_orientation[2];
+      tooltip_tfs.transform.rotation.w = tooltip_orientation[3];
+      tf_broadcaster_->sendTransform(tooltip_tfs);
     }
   }
   marker_array_pub_->publish(std::move(msg));
