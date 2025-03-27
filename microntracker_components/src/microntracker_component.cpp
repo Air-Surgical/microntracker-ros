@@ -124,7 +124,7 @@ void MicronTrackerDriver::init_info()
     cv::CALIB_FIX_K3 |
     cv::CALIB_USE_INTRINSIC_GUESS |
     cv::CALIB_ZERO_TANGENT_DIST;
-  cv::TermCriteria criteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 1e-6);
+  cv::TermCriteria criteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 1e-6);
 
   cv::stereoCalibrate(
       objectPoints,                             // 3D points
