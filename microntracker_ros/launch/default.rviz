@@ -34,7 +34,7 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz_default_plugins/Grid
       Color: 160; 160; 164
-      Enabled: true
+      Enabled: false
       Line Style:
         Line Width: 0.029999999329447746
         Value: Lines
@@ -47,7 +47,7 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: MarkerArray
@@ -127,6 +127,7 @@ Visualization Manager:
         Value: /left/image_raw
       Value: true
       Visibility:
+        CameraInfo - Left: true
         Grid: true
         Image - Left: true
         Image - Right: true
@@ -134,6 +135,24 @@ Visualization Manager:
         TF: true
         Value: true
       Zoom Factor: 1
+    - Alpha: 0.5
+      Class: rviz_default_plugins/CameraInfo
+      Color: 85; 255; 255
+      Edge color: 125; 125; 125
+      Enabled: true
+      Far clip: 1
+      Name: CameraInfo - Left
+      Not show side polygons: true
+      Show edges: true
+      Show polygons: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /left/camera_info
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -180,25 +199,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.2117513418197632
+      Distance: 1.6779086589813232
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.07218215614557266
-        Y: -0.012582865543663502
-        Z: 0.5453797578811646
+        X: 0.006428771652281284
+        Y: -0.029421992599964142
+        Z: 0.5607563853263855
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5003986954689026
+      Pitch: -0.9146007895469666
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.470396995544434
+      Yaw: 4.710395812988281
     Saved: ~
 Window Geometry:
   Camera - Left:
