@@ -74,18 +74,19 @@ void MicronTrackerDriver::init_info()
       std::array<double, 3> xyz = {point.x, point.y, point.z};
 
       // Create unique pointers for the output x and y coordinates
-      auto p_outX = std::make_unique<double>();
-      auto p_outY = std::make_unique<double>();
+      double l_outX, l_outY, r_outX, r_outY;
 
       // Project the point onto the left image plane
-      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), p_outX.get(),
-          p_outY.get()));
-      projectedPointsLeft.emplace_back(static_cast<float>(*p_outX), static_cast<float>(*p_outY));
+      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), &l_outX,
+          &l_outY));
+      projectedPointsLeft.emplace_back(static_cast<float>(l_outX), static_cast<float>(l_outY));
+      // RCLCPP_WARN(this->get_logger(), "L: %f, %f", l_outX, l_outY);
 
       // Project the point onto the right image plane
-      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtRight, xyz.data(), p_outX.get(),
-          p_outY.get()));
-      projectedPointsRight.emplace_back(static_cast<float>(*p_outX), static_cast<float>(*p_outY));
+      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtRight, xyz.data(), &r_outX,
+          &r_outY));
+      projectedPointsRight.emplace_back(static_cast<float>(r_outX), static_cast<float>(r_outY));
+      // RCLCPP_WARN(this->get_logger(), "R: %f, %f", r_outX, r_outY);
     }
 
     // Add the projected points for this view to the respective image points vectors
