@@ -55,9 +55,10 @@ void MicronTrackerDriver::init_info()
 {
   int width, height;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+  cv::Size imageSize(width, height);
 
-  int rows = height / 8;
-  int cols = width / 8;
+  int rows = imageSize.height / 8;
+  int cols = imageSize.width / 8;
   float xSize = 4 * 20.0f;
   float ySize = 3 * 20.0f;
   float zDepth = 1000.0f;
@@ -96,7 +97,6 @@ void MicronTrackerDriver::init_info()
     imagePoints2.push_back(projectedPointsRight);
   }
 
-  cv::Size imageSize(width, height);
   auto createCameraMatrix = [imageSize](double focalLength)
     {
       cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
