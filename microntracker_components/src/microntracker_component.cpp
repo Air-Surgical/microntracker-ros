@@ -129,33 +129,35 @@ void MicronTrackerDriver::init_info()
   camera_info_left.width = imageSize.width;
   camera_info_left.height = imageSize.height;
   camera_info_left.distortion_model = "plumb_bob";
-  camera_info_left.d = {
-    distCoeffs1.at<double>(0),
-    distCoeffs1.at<double>(1),
-    distCoeffs1.at<double>(2),
-    distCoeffs1.at<double>(3),
-    distCoeffs1.at<double>(4)};
-  camera_info_left.k = {
-    cameraMatrix1.at<double>(0, 0), cameraMatrix1.at<double>(0, 1), cameraMatrix1.at<double>(0, 2),
-    cameraMatrix1.at<double>(1, 0), cameraMatrix1.at<double>(1, 1), cameraMatrix1.at<double>(1, 2),
-    cameraMatrix1.at<double>(2, 0), cameraMatrix1.at<double>(2, 1), cameraMatrix1.at<double>(2, 2)};
-  camera_info_left.r = {
-    R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
-    R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
-    R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2)};
-  camera_info_left.p = {
-    cameraMatrix1.at<double>(0, 0), cameraMatrix1.at<double>(0, 1), cameraMatrix1.at<double>(0, 2),
-    0.0,
-    cameraMatrix1.at<double>(1, 0), cameraMatrix1.at<double>(1, 1), cameraMatrix1.at<double>(1, 2),
-    0.0,
-    cameraMatrix1.at<double>(2, 0), cameraMatrix1.at<double>(2, 1), cameraMatrix1.at<double>(2, 2),
-    0.0};
-
-
+  camera_info_left.header.stamp = this->now();
+  camera_info_left.header.frame_id = "left_camera_frame";
   sensor_msgs::msg::CameraInfo camera_info_right = camera_info_left;
 
-  // Set the right camera info to be the same as the left for now
-  camera_info_right.header.frame_id = "right_camera_frame";
+  auto set_camera_info = [](sensor_msgs::msg::CameraInfo & camera_info, const cv::Mat & M,
+    const cv::Mat & D, const cv::Mat & R) {
+      camera_info.d = {
+        D.at<double>(0),
+        D.at<double>(1),
+        D.at<double>(2),
+        D.at<double>(3),
+        D.at<double>(4)};
+      camera_info.k = {
+        M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2),
+        M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2),
+        M.at<double>(2, 0), M.at<double>(2, 1), M.at<double>(2, 2)};
+      camera_info.r = {
+        R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+        R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
+        R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2)};
+      camera_info.p = {
+        M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2), 0.0,
+        M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2), 0.0,
+        M.at<double>(2, 0), M.at<double>(2, 1), M.at<double>(2, 2), 0.0};
+    };
+
+  // Set camera info for left and right cameras
+  set_camera_info(camera_info_left, cameraMatrix1, distCoeffs1, R);
+  set_camera_info(camera_info_right, cameraMatrix2, distCoeffs2, R);
 
   // Publish the camera info
   camera_info_left_pub_->publish(camera_info_left);
