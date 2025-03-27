@@ -346,6 +346,21 @@ void MicronTrackerDriver::publish_images(const std_msgs::msg::Header & header)
   publish_image(image_right_pub_, image_right_data);
 }
 
+std::vector<std::vector<cv::Point3f>> generateObjectPoints(
+  int rows, int cols, float xSize, float ySize, float zDepth)
+{
+  std::vector<std::vector<cv::Point3f>> objectPoints(1);  // Single view
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      // Generate points centered around the x-y axis
+      float x = (j - cols / 2.0f) * xSize;
+      float y = (i - rows / 2.0f) * ySize;
+      objectPoints[0].emplace_back(x, y, zDepth);
+    }
+  }
+  return objectPoints;
+}
+
 }  // namespace microntracker_components
 
 #include "rclcpp_components/register_node_macro.hpp"
