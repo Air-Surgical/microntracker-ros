@@ -132,6 +132,8 @@ void MicronTrackerDriver::init_info()
   camera_info_left.distortion_model = "plumb_bob";
   camera_info_left.header.stamp = this->now();
   camera_info_left.header.frame_id = params_.frame_id;
+  camera_info_left.binning_x = 4;
+  camera_info_left.binning_y = 4;
   sensor_msgs::msg::CameraInfo camera_info_right = camera_info_left;
 
   auto set_camera_info = [](sensor_msgs::msg::CameraInfo & camera_info, const cv::Mat & M,
