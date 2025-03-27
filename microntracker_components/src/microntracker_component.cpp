@@ -72,30 +72,26 @@ void MicronTrackerDriver::init_info()
     for (const auto & point : view) {
       // Convert cv::Point3f to std::array<double, 3> for mtc::Camera_ProjectionOnImage
       std::array<double, 3> xyz = {point.x, point.y, point.z};
-
-      // Create unique pointers for the output x and y coordinates
       double l_outX, l_outY, r_outX, r_outY;
 
       // Project the point onto the left image plane
-      auto rcLeft = mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(),
-          &l_outX,
-          &l_outY);
+      auto rcLeft = mtc::Camera_ProjectionOnImage(
+            CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), &l_outX, &l_outY);
       if (rcLeft != mtc::mtOK) {
         RCLCPP_ERROR_ONCE(this->get_logger(), "Projection on left image failed: %d", rcLeft);
       }
       projectedPointsLeft.emplace_back(static_cast<float>(l_outX), static_cast<float>(l_outY));
 
       // Project the point onto the right image plane
-      auto rcRight = mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtRight, xyz.data(),
-          &r_outX,
-          &r_outY);
+      auto rcRight = mtc::Camera_ProjectionOnImage(
+            CurrCamera, mtr::mtSideI::mtRight, xyz.data(), &r_outX, &r_outY);
       if (rcRight != mtc::mtOK) {
         RCLCPP_ERROR_ONCE(this->get_logger(), "Projection on right image failed: %d", rcRight);
       }
       projectedPointsRight.emplace_back(static_cast<float>(r_outX), static_cast<float>(r_outY));
     }
 
-    // Add the projected points for this view to the respective image points vectors
+    // Store the projected points for this view
     imagePoints1.push_back(projectedPointsLeft);
     imagePoints2.push_back(projectedPointsRight);
   }
