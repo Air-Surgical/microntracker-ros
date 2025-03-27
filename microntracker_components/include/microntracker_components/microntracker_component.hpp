@@ -7,6 +7,9 @@
 #include <memory>
 #include <string>
 
+// #include "opencv2/core/core.hpp"
+#include "opencv2/calib3d.hpp"
+
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
