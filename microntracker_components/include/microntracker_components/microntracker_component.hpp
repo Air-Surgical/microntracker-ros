@@ -31,6 +31,7 @@ public:
   ~MicronTrackerDriver();
 
 protected:
+  void init_info();
   void init_mtc();
   void process_frame();
   void publish_images(const std_msgs::msg::Header & header);

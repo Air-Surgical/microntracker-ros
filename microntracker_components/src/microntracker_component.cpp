@@ -1,8 +1,10 @@
 // Copyright 2025 Air Surgical, Inc.
 
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "microntracker_components/microntracker_component.hpp"
@@ -29,6 +31,7 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
   // Initialize MTC library and connect to cameras
   init_mtc();
+  init_info();
   is_alive = true;
   process_thread = std::thread([this](){
         while (is_alive) {
@@ -46,6 +49,89 @@ MicronTrackerDriver::~MicronTrackerDriver()
   mtc::Camera_Free(CurrCamera);
   mtc::Collection_Free(IdentifiedMarkers);
   mtc::Xform3D_Free(PoseXf);
+}
+
+void MicronTrackerDriver::init_info()
+{
+  int width, height;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+
+  std::array<double, 3> xyz = {0.0, 0.0, 0.0};  // XYZ coordinates for the camera projection
+  auto p_outX = std::make_unique<double>();
+  auto p_outY = std::make_unique<double>();
+  MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), p_outX.get(),
+      p_outY.get()));
+
+  auto objectPoints = std::vector<std::vector<cv::Point3f>>(1);
+  auto imagePoints1 = std::vector<std::vector<cv::Point2f>>(1);
+  auto imagePoints2 = std::vector<std::vector<cv::Point2f>>(1);
+  cv::Mat cameraMatrix1 = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat distCoeffs1 = cv::Mat::zeros(5, 1, CV_64F);
+  cv::Mat cameraMatrix2 = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat distCoeffs2 = cv::Mat::zeros(5, 1, CV_64F);
+  cv::Size imageSize(width, height);
+  cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat T = cv::Mat::zeros(3, 1, CV_64F);
+  cv::Mat E = cv::Mat::zeros(3, 3, CV_64F);
+  cv::Mat F = cv::Mat::zeros(3, 3, CV_64F);
+  cv::Mat perViewErrors;
+  int flags = cv::CALIB_FIX_INTRINSIC;
+  cv::TermCriteria criteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 1e-6);
+
+  cv::stereoCalibrate(
+      objectPoints,                             // 3D points
+      imagePoints1,                             // 2D points for left camera
+      imagePoints2,                             // 2D points for right camera
+      cameraMatrix1,                            // camera matrix for left camera
+      distCoeffs1,                              // distortion coefficients for left camera
+      cameraMatrix2,                            // camera matrix for right camera
+      distCoeffs2,                              // distortion coefficients for right camera
+      imageSize,                                // image size
+      R,                                        // rotation matrix
+      T,                                        // translation vector
+      E,                                        // essential matrix
+      F,                                        // fundamental matrix
+      perViewErrors,                            // per-view reprojection errors
+      flags,                                    // calibration flags
+      criteria                                  // termination criteria
+  );
+
+  // Initialize camera info
+  sensor_msgs::msg::CameraInfo camera_info_left;
+  camera_info_left.width = imageSize.width;
+  camera_info_left.height = imageSize.height;
+  camera_info_left.distortion_model = "plumb_bob";
+  camera_info_left.d = {
+    distCoeffs1.at<double>(0),
+    distCoeffs1.at<double>(1),
+    distCoeffs1.at<double>(2),
+    distCoeffs1.at<double>(3),
+    distCoeffs1.at<double>(4)};
+  camera_info_left.k = {
+    cameraMatrix1.at<double>(0, 0), cameraMatrix1.at<double>(0, 1), cameraMatrix1.at<double>(0, 2),
+    cameraMatrix1.at<double>(1, 0), cameraMatrix1.at<double>(1, 1), cameraMatrix1.at<double>(1, 2),
+    cameraMatrix1.at<double>(2, 0), cameraMatrix1.at<double>(2, 1), cameraMatrix1.at<double>(2, 2)};
+  camera_info_left.r = {
+    R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+    R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
+    R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2)};
+  camera_info_left.p = {
+    cameraMatrix1.at<double>(0, 0), cameraMatrix1.at<double>(0, 1), cameraMatrix1.at<double>(0, 2),
+    0.0,
+    cameraMatrix1.at<double>(1, 0), cameraMatrix1.at<double>(1, 1), cameraMatrix1.at<double>(1, 2),
+    0.0,
+    cameraMatrix1.at<double>(2, 0), cameraMatrix1.at<double>(2, 1), cameraMatrix1.at<double>(2, 2),
+    0.0};
+
+
+  sensor_msgs::msg::CameraInfo camera_info_right = camera_info_left;
+
+  // Set the right camera info to be the same as the left for now
+  camera_info_right.header.frame_id = "right_camera_frame";
+
+  // Publish the camera info
+  camera_info_left_pub_->publish(camera_info_left);
+  camera_info_right_pub_->publish(camera_info_right);
 }
 
 void MicronTrackerDriver::init_mtc()
