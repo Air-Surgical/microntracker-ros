@@ -110,8 +110,10 @@ void MicronTrackerDriver::init_info()
   cv::Mat cameraMatrix2 = createCameraMatrix(1500);
   cv::Mat distCoeffs1 = cv::Mat::zeros(5, 1, CV_64F);
   cv::Mat distCoeffs2 = cv::Mat::zeros(5, 1, CV_64F);
-  cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
-  cv::Mat T = cv::Mat::zeros(3, 1, CV_64F);
+  cv::Mat R1 = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat R2 = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat T1 = cv::Mat::zeros(3, 1, CV_64F);
+  cv::Mat T2 = cv::Mat::zeros(3, 1, CV_64F);
   cv::Mat E = cv::Mat::zeros(3, 3, CV_64F);
   cv::Mat F = cv::Mat::zeros(3, 3, CV_64F);
   cv::Mat perViewErrors;
@@ -123,21 +125,21 @@ void MicronTrackerDriver::init_info()
   cv::TermCriteria criteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 1e-6);
 
   cv::stereoCalibrate(
-      objectPoints,                             // 3D points
-      imagePoints1,                             // 2D points for left camera
-      imagePoints2,                             // 2D points for right camera
-      cameraMatrix1,                            // camera matrix for left camera
-      distCoeffs1,                              // distortion coefficients for left camera
-      cameraMatrix2,                            // camera matrix for right camera
-      distCoeffs2,                              // distortion coefficients for right camera
-      imageSize,                                // image size
-      R,                                        // rotation matrix
-      T,                                        // translation vector
-      E,                                        // essential matrix
-      F,                                        // fundamental matrix
-      perViewErrors,                            // per-view reprojection errors
-      flags,                                    // calibration flags
-      criteria                                  // termination criteria
+      objectPoints,         // 3D points
+      imagePoints1,         // 2D points for left camera
+      imagePoints2,         // 2D points for right camera
+      cameraMatrix1,        // camera matrix for left camera
+      distCoeffs1,          // distortion coefficients for left camera
+      cameraMatrix2,        // camera matrix for right camera
+      distCoeffs2,          // distortion coefficients for right camera
+      imageSize,            // image size
+      R2,                   // rotation matrix
+      T2,                   // translation vector
+      E,                    // essential matrix
+      F,                    // fundamental matrix
+      perViewErrors,        // per-view reprojection errors
+      flags,                // calibration flags
+      criteria              // termination criteria
   );
 
   // Initialize camera info
@@ -150,7 +152,7 @@ void MicronTrackerDriver::init_info()
   sensor_msgs::msg::CameraInfo camera_info_right = camera_info_left;
 
   auto set_camera_info = [](sensor_msgs::msg::CameraInfo & camera_info, const cv::Mat & M,
-    const cv::Mat & D, const cv::Mat & R) {
+    const cv::Mat & D, const cv::Mat & R, const cv::Mat & T) {
       camera_info.d = {
         D.at<double>(0),
         D.at<double>(1),
@@ -166,14 +168,14 @@ void MicronTrackerDriver::init_info()
         R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
         R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2)};
       camera_info.p = {
-        M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2), 0.0,
-        M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2), 0.0,
-        M.at<double>(2, 0), M.at<double>(2, 1), M.at<double>(2, 2), 0.0};
+        M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2), T.at<double>(0, 0),
+        M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2), T.at<double>(1, 0),
+        M.at<double>(2, 0), M.at<double>(2, 1), M.at<double>(2, 2), T.at<double>(2, 0)};
     };
 
   // Set camera info for left and right cameras
-  set_camera_info(camera_info_left, cameraMatrix1, distCoeffs1, R);
-  set_camera_info(camera_info_right, cameraMatrix2, distCoeffs2, R);
+  set_camera_info(camera_info_left, cameraMatrix1, distCoeffs1, R1, T1);
+  set_camera_info(camera_info_right, cameraMatrix2, distCoeffs2, R2, T2);
 
   // Publish the camera info
   camera_info_left_pub_->publish(camera_info_left);
