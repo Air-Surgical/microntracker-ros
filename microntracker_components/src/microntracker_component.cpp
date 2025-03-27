@@ -56,11 +56,11 @@ void MicronTrackerDriver::init_info()
   int width, height;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
 
-  int rows = height / 4;
-  int cols = width / 4;
-  float xSize = 4.0f;
-  float ySize = 3.0f;
-  float zDepth = 2.0f;
+  int rows = height / 32;
+  int cols = width / 32;
+  float xSize = 40.0f;
+  float ySize = 30.0f;
+  float zDepth = 1000.0f;
   auto objectPoints = generateObjectPoints(rows, cols, xSize, ySize, zDepth);
   auto imagePoints1 = std::vector<std::vector<cv::Point2f>>(0);
   auto imagePoints2 = std::vector<std::vector<cv::Point2f>>(0);
