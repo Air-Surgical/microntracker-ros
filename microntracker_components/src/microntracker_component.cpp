@@ -56,15 +56,43 @@ void MicronTrackerDriver::init_info()
   int width, height;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
 
-  std::array<double, 3> xyz = {0.0, 0.0, 0.0};  // XYZ coordinates for the camera projection
-  auto p_outX = std::make_unique<double>();
-  auto p_outY = std::make_unique<double>();
-  MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), p_outX.get(),
-      p_outY.get()));
+  int rows = height / 4;
+  int cols = width / 4;
+  float xSize = 4.0f;
+  float ySize = 3.0f;
+  float zDepth = 2.0f;
+  auto objectPoints = generateObjectPoints(rows, cols, xSize, ySize, zDepth);
+  auto imagePoints1 = std::vector<std::vector<cv::Point2f>>(0);
+  auto imagePoints2 = std::vector<std::vector<cv::Point2f>>(0);
 
-  auto objectPoints = std::vector<std::vector<cv::Point3f>>(1);
-  auto imagePoints1 = std::vector<std::vector<cv::Point2f>>(1);
-  auto imagePoints2 = std::vector<std::vector<cv::Point2f>>(1);
+  for (const auto & view : objectPoints) {
+    std::vector<cv::Point2f> projectedPointsLeft;
+    std::vector<cv::Point2f> projectedPointsRight;
+
+    for (const auto & point : view) {
+      // Convert cv::Point3f to std::array<double, 3> for mtc::Camera_ProjectionOnImage
+      std::array<double, 3> xyz = {point.x, point.y, point.z};
+
+      // Create unique pointers for the output x and y coordinates
+      auto p_outX = std::make_unique<double>();
+      auto p_outY = std::make_unique<double>();
+
+      // Project the point onto the left image plane
+      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), p_outX.get(),
+          p_outY.get()));
+      projectedPointsLeft.emplace_back(static_cast<float>(*p_outX), static_cast<float>(*p_outY));
+
+      // Project the point onto the right image plane
+      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtRight, xyz.data(), p_outX.get(),
+          p_outY.get()));
+      projectedPointsRight.emplace_back(static_cast<float>(*p_outX), static_cast<float>(*p_outY));
+    }
+
+    // Add the projected points for this view to the respective image points vectors
+    imagePoints1.push_back(projectedPointsLeft);
+    imagePoints2.push_back(projectedPointsRight);
+  }
+
   cv::Mat cameraMatrix1 = cv::Mat::eye(3, 3, CV_64F);
   cv::Mat distCoeffs1 = cv::Mat::zeros(5, 1, CV_64F);
   cv::Mat cameraMatrix2 = cv::Mat::eye(3, 3, CV_64F);
