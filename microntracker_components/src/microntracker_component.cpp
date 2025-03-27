@@ -119,7 +119,11 @@ void MicronTrackerDriver::init_info()
   cv::Mat E = cv::Mat::zeros(3, 3, CV_64F);
   cv::Mat F = cv::Mat::zeros(3, 3, CV_64F);
   cv::Mat perViewErrors;
-  int flags = cv::CALIB_FIX_INTRINSIC;
+  int flags =
+    cv::CALIB_FIX_ASPECT_RATIO |
+    cv::CALIB_FIX_K3 |
+    cv::CALIB_USE_INTRINSIC_GUESS |
+    cv::CALIB_ZERO_TANGENT_DIST;
   cv::TermCriteria criteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 1e-6);
 
   cv::stereoCalibrate(
