@@ -94,11 +94,20 @@ void MicronTrackerDriver::init_info()
     imagePoints2.push_back(projectedPointsRight);
   }
 
-  cv::Mat cameraMatrix1 = cv::Mat::eye(3, 3, CV_64F);
-  cv::Mat distCoeffs1 = cv::Mat::zeros(5, 1, CV_64F);
-  cv::Mat cameraMatrix2 = cv::Mat::eye(3, 3, CV_64F);
-  cv::Mat distCoeffs2 = cv::Mat::zeros(5, 1, CV_64F);
   cv::Size imageSize(width, height);
+  auto createCameraMatrix = [imageSize](double focalLength)
+    {
+      cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
+      cameraMatrix.at<double>(0, 0) = focalLength;  // fx
+      cameraMatrix.at<double>(1, 1) = focalLength;  // fy
+      cameraMatrix.at<double>(0, 2) = imageSize.width / 2.0;  // cx
+      cameraMatrix.at<double>(1, 2) = imageSize.height / 2.0;  // cy
+      return cameraMatrix;
+    };
+  cv::Mat cameraMatrix1 = createCameraMatrix(1500);
+  cv::Mat cameraMatrix2 = createCameraMatrix(1500);
+  cv::Mat distCoeffs1 = cv::Mat::zeros(5, 1, CV_64F);
+  cv::Mat distCoeffs2 = cv::Mat::zeros(5, 1, CV_64F);
   cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
   cv::Mat T = cv::Mat::zeros(3, 1, CV_64F);
   cv::Mat E = cv::Mat::zeros(3, 3, CV_64F);
