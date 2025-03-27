@@ -56,10 +56,10 @@ void MicronTrackerDriver::init_info()
   int width, height;
   MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
 
-  int rows = height / 128;
-  int cols = width / 128;
-  float xSize = 3 * 15.0f;
-  float ySize = 3 * 15.0f;
+  int rows = height / 8;
+  int cols = width / 8;
+  float xSize = 4 * 20.0f;
+  float ySize = 3 * 20.0f;
   float zDepth = 1000.0f;
   auto objectPoints = generateObjectPoints(rows, cols, xSize, ySize, zDepth);
   auto imagePoints1 = std::vector<std::vector<cv::Point2f>>(0);
@@ -77,16 +77,22 @@ void MicronTrackerDriver::init_info()
       double l_outX, l_outY, r_outX, r_outY;
 
       // Project the point onto the left image plane
-      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), &l_outX,
-          &l_outY));
+      auto rcLeft = mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtLeft, xyz.data(),
+          &l_outX,
+          &l_outY);
+      if (rcLeft != mtc::mtOK) {
+        RCLCPP_ERROR_ONCE(this->get_logger(), "Projection on left image failed: %d", rcLeft);
+      }
       projectedPointsLeft.emplace_back(static_cast<float>(l_outX), static_cast<float>(l_outY));
-      // RCLCPP_WARN(this->get_logger(), "L: %f, %f", l_outX, l_outY);
 
       // Project the point onto the right image plane
-      MTR(mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtRight, xyz.data(), &r_outX,
-          &r_outY));
+      auto rcRight = mtc::Camera_ProjectionOnImage(CurrCamera, mtr::mtSideI::mtRight, xyz.data(),
+          &r_outX,
+          &r_outY);
+      if (rcRight != mtc::mtOK) {
+        RCLCPP_ERROR_ONCE(this->get_logger(), "Projection on right image failed: %d", rcRight);
+      }
       projectedPointsRight.emplace_back(static_cast<float>(r_outX), static_cast<float>(r_outY));
-      // RCLCPP_WARN(this->get_logger(), "R: %f, %f", r_outX, r_outY);
     }
 
     // Add the projected points for this view to the respective image points vectors
