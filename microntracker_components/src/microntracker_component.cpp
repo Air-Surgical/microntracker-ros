@@ -247,6 +247,12 @@ void MicronTrackerDriver::init_mtc()
 
   IdentifiedMarkers = mtc::Collection_New();
   PoseXf = mtc::Xform3D_New();
+
+  auto jitter_filter_enabled = true;
+  mtc::Markers_JitterFilterEnabledSet(jitter_filter_enabled);
+  jitter_filter_enabled = mtc::Markers_JitterFilterEnabled();
+  RCLCPP_INFO(this->get_logger(), "Jitter filter is %s",
+      jitter_filter_enabled ? "enabled" : "disabled");
 }
 
 void MicronTrackerDriver::process_frame()
