@@ -45,7 +45,7 @@ MicronTrackerDriver::~MicronTrackerDriver()
   is_alive = false;
   process_thread.join();
   // FIXME: this sigfaults teardown
-  // mtc::Cameras_Detach();
+  mtc::Cameras_Detach();
   mtc::Camera_Free(CurrCamera);
   mtc::Collection_Free(IdentifiedMarkers);
   mtc::Xform3D_Free(PoseXf);
@@ -251,8 +251,28 @@ void MicronTrackerDriver::init_mtc()
   auto jitter_filter_enabled = true;
   mtc::Markers_JitterFilterEnabledSet(jitter_filter_enabled);
   jitter_filter_enabled = mtc::Markers_JitterFilterEnabled();
-  RCLCPP_INFO(this->get_logger(), "Jitter filter is %s",
+  RCLCPP_WARN(this->get_logger(), "Jitter filter is %s",
       jitter_filter_enabled ? "enabled" : "disabled");
+
+  double jitter_filter_coefficient;
+  MTR(mtc::Markers_JitterFilterCoefficientGet(&jitter_filter_coefficient));
+  RCLCPP_WARN(this->get_logger(), "Jitter filter coefficient is %.2f",
+      jitter_filter_coefficient);
+
+  double angular_jitter_filter_coefficient;
+  MTR(mtc::Markers_AngularJitterFilterCoefficientGet(&angular_jitter_filter_coefficient));
+  RCLCPP_WARN(this->get_logger(), "Angular jitter filter coefficient is %.2f",
+  angular_jitter_filter_coefficient);
+
+  double jitter_filter_2d_tolerance;
+  MTR(mtc::Markers_JitterFilter2DToleranceGet(&jitter_filter_2d_tolerance));
+  RCLCPP_WARN(this->get_logger(), "Jitter filter 2d tolerance is %.2f",
+    jitter_filter_2d_tolerance);
+
+  int jitter_filter_history_length;
+  MTR(mtc::Markers_JitterFilterHistoryLengthGet(&jitter_filter_history_length));
+  RCLCPP_WARN(this->get_logger(), "Jitter filter history length is %d",
+    jitter_filter_history_length);
 }
 
 void MicronTrackerDriver::process_frame()
@@ -333,7 +353,8 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
 
       // Publish the transform
       geometry_msgs::msg::TransformStamped marker_tfs;
-      marker_tfs.header = header;
+      marker_tfs.header.stamp = this->get_clock()->now();
+      marker_tfs.header.frame_id = "camera";
       marker_tfs.child_frame_id = MarkerName;
       marker_tfs.transform.translation.x = position[0] / 1000;
       marker_tfs.transform.translation.y = position[1] / 1000;
@@ -345,7 +366,7 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
       tf_broadcaster_->sendTransform(marker_tfs);
 
       geometry_msgs::msg::TransformStamped tooltip_tfs;
-      tooltip_tfs.header = header;
+      tooltip_tfs.header.stamp = this->get_clock()->now();
       tooltip_tfs.header.frame_id = MarkerName;
       tooltip_tfs.child_frame_id = MarkerName + "_tooltip";
       tooltip_tfs.transform.translation.x = tooltip_position[0] / 1000;
