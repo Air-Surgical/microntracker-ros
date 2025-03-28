@@ -16,6 +16,12 @@ namespace mtc
 namespace mtr
 {
 
+enum mtSideI
+{
+  mtLeft = 0,  /*!< Left side image index */
+  mtRight = 1, /*!< Right side image index */
+};
+
 #define MTR(func) {int r = func; \
   if (r != mtc::mtOK) RCLCPP_ERROR(this->get_logger(), "MTC error: %s", mtc::MTLastErrorString());}
 

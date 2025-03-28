@@ -3,9 +3,13 @@
 #ifndef MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 #define MICRONTRACKER_COMPONENTS__MICRONTRACKER_COMPONENT_HPP_
 
-#include <thread>
 #include <memory>
 #include <string>
+#include <thread>
+#include <vector>
+
+// #include "opencv2/core/core.hpp"
+#include "opencv2/calib3d.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
@@ -28,6 +32,7 @@ public:
   ~MicronTrackerDriver();
 
 protected:
+  void init_info();
   void init_mtc();
   void process_frame();
   void publish_images(const std_msgs::msg::Header & header);
@@ -52,6 +57,9 @@ private:
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::thread process_thread;
 };
+
+std::vector<std::vector<cv::Point3f>> generateObjectPoints(
+  int rows, int cols, float xSize, float ySize, float zDepth);
 
 }  // namespace microntracker_components
 

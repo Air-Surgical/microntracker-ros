@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(microntracker REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -38,6 +39,7 @@ ament_target_dependencies(microntracker_component
 target_link_libraries(microntracker_component
   microntracker_components_parameters
   ${microntracker_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 rclcpp_components_register_node(
