@@ -1,8 +1,10 @@
 // Copyright 2025 Air Surgical, Inc.
 
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "microntracker_components/microntracker_component.hpp"
@@ -29,6 +31,7 @@ MicronTrackerDriver::MicronTrackerDriver(const rclcpp::NodeOptions & options)
 
   // Initialize MTC library and connect to cameras
   init_mtc();
+  init_info();
   is_alive = true;
   process_thread = std::thread([this](){
         while (is_alive) {
@@ -46,6 +49,162 @@ MicronTrackerDriver::~MicronTrackerDriver()
   mtc::Camera_Free(CurrCamera);
   mtc::Collection_Free(IdentifiedMarkers);
   mtc::Xform3D_Free(PoseXf);
+}
+
+void MicronTrackerDriver::init_info()
+{
+  int width, height;
+  MTR(mtc::Camera_ResolutionGet(CurrCamera, &width, &height));
+  cv::Size imageSize(width, height);
+
+  int rows = imageSize.height / 8;
+  int cols = imageSize.width / 8;
+  float xSize = 4 * 20.0f;
+  float ySize = 3 * 20.0f;
+  float zDepth = 1000.0f;
+  auto objectPoints = generateObjectPoints(rows, cols, xSize, ySize, zDepth);
+  auto imagePoints1 = std::vector<std::vector<cv::Point2f>>(0);
+  auto imagePoints2 = std::vector<std::vector<cv::Point2f>>(0);
+
+  for (const auto & view : objectPoints) {
+    std::vector<cv::Point2f> projectedPointsLeft;
+    std::vector<cv::Point2f> projectedPointsRight;
+
+    for (const auto & point : view) {
+      // Convert cv::Point3f to std::array<double, 3> for mtc::Camera_ProjectionOnImage
+      std::array<double, 3> xyz = {point.x, point.y, point.z};
+      double l_outX, l_outY, r_outX, r_outY;
+
+      // Project the point onto the left image plane
+      auto rcLeft = mtc::Camera_ProjectionOnImage(
+            CurrCamera, mtr::mtSideI::mtLeft, xyz.data(), &l_outX, &l_outY);
+      if (rcLeft != mtc::mtOK) {
+        RCLCPP_ERROR_ONCE(this->get_logger(), "Projection on left image failed: %d", rcLeft);
+      }
+      projectedPointsLeft.emplace_back(static_cast<float>(l_outX), static_cast<float>(l_outY));
+
+      // Project the point onto the right image plane
+      auto rcRight = mtc::Camera_ProjectionOnImage(
+            CurrCamera, mtr::mtSideI::mtRight, xyz.data(), &r_outX, &r_outY);
+      if (rcRight != mtc::mtOK) {
+        RCLCPP_ERROR_ONCE(this->get_logger(), "Projection on right image failed: %d", rcRight);
+      }
+      projectedPointsRight.emplace_back(static_cast<float>(r_outX), static_cast<float>(r_outY));
+    }
+
+    // Store the projected points for this view
+    imagePoints1.push_back(projectedPointsLeft);
+    imagePoints2.push_back(projectedPointsRight);
+  }
+
+  auto createCameraMatrix = [imageSize](double focalLength)
+    {
+      cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
+      cameraMatrix.at<double>(0, 0) = focalLength;  // fx
+      cameraMatrix.at<double>(1, 1) = focalLength;  // fy
+      cameraMatrix.at<double>(0, 2) = imageSize.width / 2.0;  // cx
+      cameraMatrix.at<double>(1, 2) = imageSize.height / 2.0;  // cy
+      return cameraMatrix;
+    };
+  cv::Mat cameraMatrix1 = createCameraMatrix(1500);
+  cv::Mat cameraMatrix2 = createCameraMatrix(1500);
+  cv::Mat distCoeffs1 = cv::Mat::zeros(5, 1, CV_64F);
+  cv::Mat distCoeffs2 = cv::Mat::zeros(5, 1, CV_64F);
+  cv::Mat R1 = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat R2 = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat T1 = cv::Mat::zeros(3, 1, CV_64F);
+  cv::Mat T2 = cv::Mat::zeros(3, 1, CV_64F);
+  cv::Mat E = cv::Mat::zeros(3, 3, CV_64F);
+  cv::Mat F = cv::Mat::zeros(3, 3, CV_64F);
+  cv::Mat perViewErrors;
+  int flags =
+    cv::CALIB_FIX_ASPECT_RATIO |
+    cv::CALIB_FIX_K3 |
+    cv::CALIB_USE_INTRINSIC_GUESS |
+    cv::CALIB_ZERO_TANGENT_DIST;
+  // int flags =
+  //   cv::CALIB_FIX_INTRINSIC;
+  cv::TermCriteria criteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 1e-6);
+
+  // cv::calibrateCamera(
+  //     objectPoints,         // 3D points
+  //     imagePoints1,         // 2D points for left camera
+  //     imageSize,            // image size
+  //     cameraMatrix1,        // camera matrix for left camera
+  //     distCoeffs1,          // distortion coefficients for left camera
+  //     R1,                   // rotation matrix for left camera
+  //     T1,                   // translation vector for left camera
+  //     flags,                // calibration flags
+  //     criteria              // termination criteria
+  // );
+  // cv::calibrateCamera(
+  //     objectPoints,         // 3D points
+  //     imagePoints2,         // 2D points for right camera
+  //     imageSize,            // image size
+  //     cameraMatrix2,        // camera matrix for right camera
+  //     distCoeffs2,          // distortion coefficients for right camera
+  //     R2,                   // rotation matrix for right camera
+  //     T2,                   // translation vector for left camera
+  //     flags,                // calibration flags
+  //     criteria              // termination criteria
+  // );
+
+  cv::stereoCalibrate(
+      objectPoints,         // 3D points
+      imagePoints1,         // 2D points for left camera
+      imagePoints2,         // 2D points for right camera
+      cameraMatrix1,        // camera matrix for left camera
+      distCoeffs1,          // distortion coefficients for left camera
+      cameraMatrix2,        // camera matrix for right camera
+      distCoeffs2,          // distortion coefficients for right camera
+      imageSize,            // image size
+      R2,                   // rotation matrix
+      T2,                   // translation vector
+      E,                    // essential matrix
+      F,                    // fundamental matrix
+      perViewErrors,        // per-view reprojection errors
+      flags,                // calibration flags
+      criteria              // termination criteria
+  );
+
+  // Initialize camera info
+  sensor_msgs::msg::CameraInfo camera_info_left;
+  camera_info_left.width = imageSize.width;
+  camera_info_left.height = imageSize.height;
+  camera_info_left.distortion_model = "plumb_bob";
+  camera_info_left.header.stamp = this->now();
+  camera_info_left.header.frame_id = params_.frame_id;
+  sensor_msgs::msg::CameraInfo camera_info_right = camera_info_left;
+
+  auto set_camera_info = [](sensor_msgs::msg::CameraInfo & camera_info, const cv::Mat & M,
+    const cv::Mat & D, const cv::Mat & R, const cv::Mat & T) {
+      camera_info.d = {
+        D.at<double>(0),
+        D.at<double>(1),
+        D.at<double>(2),
+        D.at<double>(3),
+        D.at<double>(4)};
+      camera_info.k = {
+        M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2),
+        M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2),
+        M.at<double>(2, 0), M.at<double>(2, 1), M.at<double>(2, 2)};
+      camera_info.r = {
+        R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+        R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
+        R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2)};
+      camera_info.p = {
+        M.at<double>(0, 0), M.at<double>(0, 1), M.at<double>(0, 2), T.at<double>(0, 0),
+        M.at<double>(1, 0), M.at<double>(1, 1), M.at<double>(1, 2), T.at<double>(1, 0),
+        M.at<double>(2, 0), M.at<double>(2, 1), M.at<double>(2, 2), T.at<double>(2, 0)};
+    };
+
+  // Set camera info for left and right cameras
+  set_camera_info(camera_info_left, cameraMatrix1, distCoeffs1, R1, T1);
+  set_camera_info(camera_info_right, cameraMatrix2, distCoeffs2, R2, T2);
+
+  // Publish the camera info
+  camera_info_left_pub_->publish(camera_info_left);
+  camera_info_right_pub_->publish(camera_info_right);
 }
 
 void MicronTrackerDriver::init_mtc()
@@ -92,6 +251,32 @@ void MicronTrackerDriver::init_mtc()
 
   IdentifiedMarkers = mtc::Collection_New();
   PoseXf = mtc::Xform3D_New();
+
+  auto jitter_filter_enabled = true;
+  mtc::Markers_JitterFilterEnabledSet(jitter_filter_enabled);
+  jitter_filter_enabled = mtc::Markers_JitterFilterEnabled();
+  RCLCPP_INFO(this->get_logger(), "Jitter filter is %s",
+    jitter_filter_enabled ? "enabled" : "disabled");
+
+  double jitter_filter_coefficient;
+  MTR(mtc::Markers_JitterFilterCoefficientGet(&jitter_filter_coefficient));
+  RCLCPP_INFO(this->get_logger(), "Jitter filter coefficient is %.2f",
+    jitter_filter_coefficient);
+
+  double angular_jitter_filter_coefficient;
+  MTR(mtc::Markers_AngularJitterFilterCoefficientGet(&angular_jitter_filter_coefficient));
+  RCLCPP_INFO(this->get_logger(), "Angular jitter filter coefficient is %.2f",
+    angular_jitter_filter_coefficient);
+
+  double jitter_filter_2d_tolerance;
+  MTR(mtc::Markers_JitterFilter2DToleranceGet(&jitter_filter_2d_tolerance));
+  RCLCPP_INFO(this->get_logger(), "Jitter filter 2d tolerance is %.2f",
+    jitter_filter_2d_tolerance);
+
+  int jitter_filter_history_length;
+  MTR(mtc::Markers_JitterFilterHistoryLengthGet(&jitter_filter_history_length));
+  RCLCPP_INFO(this->get_logger(), "Jitter filter history length is %d",
+    jitter_filter_history_length);
 }
 
 void MicronTrackerDriver::process_frame()
@@ -99,14 +284,19 @@ void MicronTrackerDriver::process_frame()
   MTR(mtc::Cameras_GrabFrame(0));
   MTR(mtc::Markers_ProcessFrame(0));
 
-  double frame_secs;
-  MTR(mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs));
-  auto stamp = [this, frame_secs]() {
-      auto duration = rclcpp::Duration::from_seconds(frame_secs);
-      return this->mt_epoch + duration;
-    }();
+  // FIXME:Using the camera clock causes TF synchronization issues
+  // as the camera's internal clock may be drifting behind
+  // or the system  clock may be drifting ahead.
+  // double frame_secs;
+  // MTR(mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs));
+  // auto stamp = [this, frame_secs]() {
+  //     auto duration = rclcpp::Duration::from_seconds(frame_secs);
+  //     return this->mt_epoch + duration;
+  //   }();
+  // std_msgs::msg::Header header;
+  // header.stamp = stamp;
   std_msgs::msg::Header header;
-  header.stamp = stamp;
+  header.stamp = this->now();
   header.frame_id = params_.frame_id;
 
   publish_images(header);
@@ -258,6 +448,21 @@ void MicronTrackerDriver::publish_images(const std_msgs::msg::Header & header)
     };
   publish_image(image_left_pub_, image_left_data);
   publish_image(image_right_pub_, image_right_data);
+}
+
+std::vector<std::vector<cv::Point3f>> generateObjectPoints(
+  int rows, int cols, float xSize, float ySize, float zDepth)
+{
+  std::vector<std::vector<cv::Point3f>> objectPoints(1);  // Single view
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      // Generate points centered around the x-y axis
+      float x = (j - cols / 2.0f) * xSize;
+      float y = (i - rows / 2.0f) * ySize;
+      objectPoints[0].emplace_back(x, y, zDepth);
+    }
+  }
+  return objectPoints;
 }
 
 }  // namespace microntracker_components
