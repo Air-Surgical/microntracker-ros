@@ -353,8 +353,7 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
 
       // Publish the transform
       geometry_msgs::msg::TransformStamped marker_tfs;
-      marker_tfs.header.stamp = this->get_clock()->now();
-      marker_tfs.header.frame_id = "camera";
+      marker_tfs.header = header;
       marker_tfs.child_frame_id = MarkerName;
       marker_tfs.transform.translation.x = position[0] / 1000;
       marker_tfs.transform.translation.y = position[1] / 1000;
@@ -366,7 +365,7 @@ void MicronTrackerDriver::publish_markers(const std_msgs::msg::Header & header)
       tf_broadcaster_->sendTransform(marker_tfs);
 
       geometry_msgs::msg::TransformStamped tooltip_tfs;
-      tooltip_tfs.header.stamp = this->get_clock()->now();
+      tooltip_tfs.header = header;
       tooltip_tfs.header.frame_id = MarkerName;
       tooltip_tfs.child_frame_id = MarkerName + "_tooltip";
       tooltip_tfs.transform.translation.x = tooltip_position[0] / 1000;
