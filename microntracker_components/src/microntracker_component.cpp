@@ -117,33 +117,33 @@ void MicronTrackerDriver::init_info()
   cv::Mat E = cv::Mat::zeros(3, 3, CV_64F);
   cv::Mat F = cv::Mat::zeros(3, 3, CV_64F);
   cv::Mat perViewErrors;
-  int flags =
-    cv::CALIB_FIX_ASPECT_RATIO |
-    cv::CALIB_FIX_K3 |
-    cv::CALIB_USE_INTRINSIC_GUESS |
-    cv::CALIB_ZERO_TANGENT_DIST;
   // int flags =
-  //   cv::CALIB_FIX_INTRINSIC;
+  //   cv::CALIB_FIX_ASPECT_RATIO |
+  //   cv::CALIB_FIX_K3 |
+  //   cv::CALIB_USE_INTRINSIC_GUESS |
+  //   cv::CALIB_ZERO_TANGENT_DIST;
+  int flags =
+    cv::CALIB_FIX_INTRINSIC;
   cv::TermCriteria criteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 1e-6);
 
-  // cv::calibrateCamera(
-  //     objectPoints,         // 3D points
-  //     imagePoints1,         // 2D points for left camera
-  //     imageSize,            // image size
-  //     cameraMatrix1,        // camera matrix for left camera
-  //     distCoeffs1,          // distortion coefficients for left camera
-  //     R1,                   // rotation matrix for left camera
-  //     T1                    // translation vector for left camera
-  // );
-  // cv::calibrateCamera(
-  //     objectPoints,         // 3D points
-  //     imagePoints2,         // 2D points for right camera
-  //     imageSize,            // image size
-  //     cameraMatrix2,        // camera matrix for right camera
-  //     distCoeffs2,          // distortion coefficients for right camera
-  //     R2,                   // rotation matrix for right camera
-  //     T2                    // translation vector for right camera
-  // );
+  cv::calibrateCamera(
+      objectPoints,         // 3D points
+      imagePoints1,         // 2D points for left camera
+      imageSize,            // image size
+      cameraMatrix1,        // camera matrix for left camera
+      distCoeffs1,          // distortion coefficients for left camera
+      R1,                   // rotation matrix for left camera
+      T1                    // translation vector for left camera
+  );
+  cv::calibrateCamera(
+      objectPoints,         // 3D points
+      imagePoints2,         // 2D points for right camera
+      imageSize,            // image size
+      cameraMatrix2,        // camera matrix for right camera
+      distCoeffs2,          // distortion coefficients for right camera
+      R2,                   // rotation matrix for right camera
+      T2                    // translation vector for right camera
+  );
 
   cv::stereoCalibrate(
       objectPoints,         // 3D points
