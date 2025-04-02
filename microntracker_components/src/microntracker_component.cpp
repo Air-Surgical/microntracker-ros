@@ -280,14 +280,19 @@ void MicronTrackerDriver::process_frame()
   MTR(mtc::Cameras_GrabFrame(0));
   MTR(mtc::Markers_ProcessFrame(0));
 
-  double frame_secs;
-  MTR(mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs));
-  auto stamp = [this, frame_secs]() {
-      auto duration = rclcpp::Duration::from_seconds(frame_secs);
-      return this->mt_epoch + duration;
-    }();
+  // FIXME:Using the camera clock causes TF synchronization issues
+  // as the camera's internal clock may be drifting behind
+  // or the system  clock may be drifting ahead.
+  // double frame_secs;
+  // MTR(mtc::Camera_FrameMTTimeSecsGet(CurrCamera, &frame_secs));
+  // auto stamp = [this, frame_secs]() {
+  //     auto duration = rclcpp::Duration::from_seconds(frame_secs);
+  //     return this->mt_epoch + duration;
+  //   }();
+  // std_msgs::msg::Header header;
+  // header.stamp = stamp;
   std_msgs::msg::Header header;
-  header.stamp = stamp;
+  header.stamp = this->now();
   header.frame_id = params_.frame_id;
 
   publish_images(header);
