@@ -251,27 +251,27 @@ void MicronTrackerDriver::init_mtc()
   auto jitter_filter_enabled = true;
   mtc::Markers_JitterFilterEnabledSet(jitter_filter_enabled);
   jitter_filter_enabled = mtc::Markers_JitterFilterEnabled();
-  RCLCPP_WARN(this->get_logger(), "Jitter filter is %s",
-      jitter_filter_enabled ? "enabled" : "disabled");
+  RCLCPP_INFO(this->get_logger(), "Jitter filter is %s",
+    jitter_filter_enabled ? "enabled" : "disabled");
 
   double jitter_filter_coefficient;
   MTR(mtc::Markers_JitterFilterCoefficientGet(&jitter_filter_coefficient));
-  RCLCPP_WARN(this->get_logger(), "Jitter filter coefficient is %.2f",
-      jitter_filter_coefficient);
+  RCLCPP_INFO(this->get_logger(), "Jitter filter coefficient is %.2f",
+    jitter_filter_coefficient);
 
   double angular_jitter_filter_coefficient;
   MTR(mtc::Markers_AngularJitterFilterCoefficientGet(&angular_jitter_filter_coefficient));
-  RCLCPP_WARN(this->get_logger(), "Angular jitter filter coefficient is %.2f",
-  angular_jitter_filter_coefficient);
+  RCLCPP_INFO(this->get_logger(), "Angular jitter filter coefficient is %.2f",
+    angular_jitter_filter_coefficient);
 
   double jitter_filter_2d_tolerance;
   MTR(mtc::Markers_JitterFilter2DToleranceGet(&jitter_filter_2d_tolerance));
-  RCLCPP_WARN(this->get_logger(), "Jitter filter 2d tolerance is %.2f",
+  RCLCPP_INFO(this->get_logger(), "Jitter filter 2d tolerance is %.2f",
     jitter_filter_2d_tolerance);
 
   int jitter_filter_history_length;
   MTR(mtc::Markers_JitterFilterHistoryLengthGet(&jitter_filter_history_length));
-  RCLCPP_WARN(this->get_logger(), "Jitter filter history length is %d",
+  RCLCPP_INFO(this->get_logger(), "Jitter filter history length is %d",
     jitter_filter_history_length);
 }
 
