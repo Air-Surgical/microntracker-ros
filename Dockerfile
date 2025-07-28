@@ -7,7 +7,7 @@ ARG WS_CACHE_ID=mtr
 
 ARG FROM_IMAGE=base
 # Stage from full image tag name for dependabot detection
-FROM ubuntu:noble-20250127 AS base
+FROM ubuntu:noble-20250714 AS base
 
 ################################################################################
 # MARK: baser - setup base image using snapshots
