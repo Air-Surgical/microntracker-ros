@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.13.0
+# syntax=docker/dockerfile:1.17.1
 ARG DEV_FROM_STAGE=builder
 ARG EXPORT_FROM_STAGE=compiler
 ARG OVERLAY_WS=/opt/mtr_ws
