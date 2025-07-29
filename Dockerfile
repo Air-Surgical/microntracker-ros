@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.13.0
+# syntax=docker/dockerfile:1.17.1
 ARG DEV_FROM_STAGE=builder
 ARG EXPORT_FROM_STAGE=compiler
 ARG OVERLAY_WS=/opt/mtr_ws
@@ -7,7 +7,7 @@ ARG WS_CACHE_ID=mtr
 
 ARG FROM_IMAGE=base
 # Stage from full image tag name for dependabot detection
-FROM ubuntu:noble-20250127 AS base
+FROM ubuntu:noble-20250714 AS base
 
 ################################################################################
 # MARK: baser - setup base image using snapshots
@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     gnupg2 \
+    locales \
+    tzdata \
   && rm -rf /var/lib/apt/lists/*
 
 # configure ubuntu snapshot
@@ -31,34 +33,25 @@ ARG ROS_DISTRO=jazzy
 ENV ROS_DISTRO=${ROS_DISTRO}
 ENV ROS_VERSION=2
 
-# configure ROS snapshot
-ARG ROS_DEB_SNAPSHOT=2025-01-20
-ARG ROS_SOURCE_URL=http://snapshots.ros.org/${ROS_DISTRO}/${ROS_DEB_SNAPSHOT}/ubuntu
+# configure ROS source
+ARG ROS_APT_SLUG=ros-infrastructure/ros-apt-source/releases
 RUN . /etc/os-release && \
-    apt-key adv \
-      --keyserver hkp://keyserver.ubuntu.com:80 \
-      --recv-key 4B63CF8FDE49746E98FA01DDAD19BAB3CBF125EA && \
-    echo "deb ${ROS_SOURCE_URL} ${UBUNTU_CODENAME} main" \
-    | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+    VERSION=$(curl -s https://api.github.com/repos/${ROS_APT_SLUG}/latest | grep -F "tag_name" | awk -F\" '{print $4}') && \
+    DEB_URL="https://github.com/${ROS_APT_SLUG}/download/${VERSION}/ros2-apt-source_${VERSION}.${VERSION_CODENAME}_all.deb" && \
+    curl -L -o /tmp/ros2-apt-source.deb "$DEB_URL" && \
+    apt-get install -y /tmp/ros2-apt-source.deb && \
+    rm -f /tmp/ros2-apt-source.deb
 
-# edit apt config for caching
-RUN mv /etc/apt/apt.conf.d/docker-clean /etc/apt/ && \
-    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' \
-      > /etc/apt/apt.conf.d/keep-cache && \
-    # Given fixed snapshots, just cache apt update once
-    apt-get update && echo v1
+# update package cache
+RUN cat <<EOF > /etc/apt/apt.conf.d/docker-clean && apt-get update && echo v1
+Binary::apt::APT::Keep-Downloaded-Packages "true";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+EOF
 
 # setup environment
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
-
-# setup timezone and locales
-RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
-    echo 'Etc/UTC' > /etc/timezone && \
-    ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
-    apt-get install -y --no-install-recommends \
-      locales \
-      tzdata
 
 # configure workspace
 ARG OVERLAY_WS
@@ -67,11 +60,12 @@ WORKDIR $OVERLAY_WS
 
 # install bootstrap tools
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
-    apt-get install -y --no-install-recommends \
+    apt-get install -y \
       gettext-base \
       python3-colcon-common-extensions \
       python3-rosdep \
       python3-vcstool \
+      unzip \
       wget \
       zstd
 
@@ -109,42 +103,44 @@ RUN find ./ \
       | tee /tmp/packages.txt && \
     [ -s /tmp/packages.txt ] || exit 1
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN dep_types=(\
-      "exec:--dependency-types=exec" \
-      "test:--dependency-types=test" \
-      "build:"\
-    ) && \
-    for dep_type in "${dep_types[@]}"; do \
-      IFS=":"; set -- $dep_type; \
-      rosdep install -y \
-        --from-paths src \
-        --ignore-src \
-        # --skip-keys " \
-        #     example_package_name \
-        #   "\
-        --reinstall \
-        --simulate \
-        ${2} \
-        | grep 'apt-get install' \
-        | awk -F' ' '{print $4}' | sed "s/'//g" \
-        | sort > /tmp/${1}_debs.txt; \
-    done
+RUN bash -e <<'EOF'
+declare -A types=(
+  [exec]="--dependency-types=exec"
+  [test]="--dependency-types=test"
+  [build]="")
+for type in "${!types[@]}"; do
+  rosdep install -y \
+    --from-paths src \
+    --ignore-src \
+    --reinstall \
+    --simulate \
+    ${types[$type]} \
+    | grep 'apt-get install' \
+    | awk '{gsub(/'\''/,"",$4); print $4}' \
+    | sort -u > /tmp/${type}_debs.txt
+done
+EOF
 
 ################################################################################
 # MARK: runner - setup runtime dependencies for deployment
 ################################################################################
 FROM baser AS runner
 
+# install pip packages
+RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    --mount=type=cache,sharing=locked,target=/root/.cache/pip \
+    apt-get install -y \
+      python3-pip
+
 # install packages for field work
 COPY docker/runner_apt_debs.txt /tmp/runner_apt_debs.txt
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
     cut -d# -f1 < /tmp/runner_apt_debs.txt | envsubst \
-      | xargs apt-get install -y --no-install-recommends
+      | xargs apt-get install -y
 
 COPY --from=cacher /tmp/exec_debs.txt /tmp/exec_debs.txt
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
-    < /tmp/exec_debs.txt xargs apt-get install -y --no-install-recommends
+    < /tmp/exec_debs.txt xargs apt-get install -y
 
 ################################################################################
 # MARK: tester - setup test dependencies for validation
@@ -153,14 +149,14 @@ FROM runner AS tester
 
 # install bootstrap tools
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
-    apt-get install -y --no-install-recommends \
+    --mount=type=cache,sharing=locked,target=/root/.cache/pip \
+    apt-get install -y \
       git \
       git-lfs \
       python3-colcon-clean \
       python3-colcon-common-extensions \
       python3-colcon-metadata \
       python3-colcon-mixin \
-      python3-pip \
     && pip3 install --break-system-packages \
       git+https://github.com/ruffsl/colcon-cache.git@6076815bbb574da028d270cf6eb93bdd5b29c7f4
 ENV COLCON_EXTENSION_BLOCKLIST="colcon_core.package_augmentation.cache_git"
@@ -173,11 +169,11 @@ RUN ln -s $OVERLAY_WS/src/microntracker-ros/docker/.colcon /opt/.colcon
 COPY docker/tester_apt_debs.txt /tmp/tester_apt_debs.txt
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
   cut -d# -f1 < /tmp/tester_apt_debs.txt | envsubst \
-  | xargs apt-get install -y --no-install-recommends
+  | xargs apt-get install -y
 
 COPY --from=cacher /tmp/test_debs.txt /tmp/test_debs.txt
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
-    < /tmp/test_debs.txt xargs apt-get install -y --no-install-recommends
+    < /tmp/test_debs.txt xargs apt-get install -y
 
 # Override default flake8 configuration for black compatibility
 COPY docker/.colcon/flake8.ini \
@@ -190,13 +186,13 @@ FROM tester AS builder
 
 COPY --from=cacher /tmp/build_debs.txt /tmp/
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
-    < /tmp/build_debs.txt xargs apt-get install -y --no-install-recommends
+    < /tmp/build_debs.txt xargs apt-get install -y
 
 # install packages for build work
 COPY docker/builder_apt_debs.txt /tmp/builder_apt_debs.txt
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
   cut -d# -f1 < /tmp/builder_apt_debs.txt | envsubst \
-    | xargs apt-get install -y --no-install-recommends
+    | xargs apt-get install -y
 
 # Symlink for docker outside of docker
 RUN ln -s /var/run/docker-host.sock /var/run/docker.sock
@@ -227,7 +223,7 @@ FROM $DEV_FROM_STAGE AS dever
 COPY docker/dever_apt_debs.txt /tmp/dever_apt_debs.txt
 RUN --mount=type=cache,sharing=locked,target=/var/cache/apt \
   cut -d# -f1 < /tmp/dever_apt_debs.txt | envsubst \
-  | xargs apt-get install -y --no-install-recommends
+  | xargs apt-get install -y
 
 ################################################################################
 # MARK: seeder - seed workspace artifacts for caching
